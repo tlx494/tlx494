@@ -4,6 +4,48 @@ import * as THREE from 'three';
 import { TweenMax, Power1 } from 'gsap';
 
 
+const colors = [
+  {
+    fogColor: "#562A69",
+    particleColor: "#562A69",
+    lineColor: "#562A69",
+    buildingColor: "#000012",
+    groundColor: "#00000a"
+  },
+  {
+    fogColor: "#0a0091",
+    particleColor: "#0a0091",
+    lineColor: "#0a0091",
+    buildingColor: "#060012",
+    groundColor: "#04000a"
+  },
+  {
+    fogColor: "#db5139",
+    particleColor: "#db5139",
+    lineColor: "#db5139",
+    buildingColor: "#0d0600",
+    groundColor: "#080400"
+  },
+  {
+    fogColor: "#E79411",
+    particleColor: "#E79411",
+    lineColor: "#E79411",
+    buildingColor: "#0f0b00",
+    groundColor: "#070500"
+  },
+  {
+    fogColor: "#f2bf58",
+    particleColor: "#f2bf58",
+    lineColor: "#f2bf58",
+    buildingColor: "#160f00",
+    groundColor: "#080700"
+  }
+];
+var cubes = [];
+var floors = [];
+var lines = [];
+var currentColors = colors[Math.floor(colors.length/2)];
+
 function waitForElm(selector) {
   return new Promise(resolve => {
       if (document.querySelector(selector)) {
@@ -24,6 +66,8 @@ function waitForElm(selector) {
   });
 }
 
+
+
 // Three JS Template
 //----------------------------------------------------------------- BASIC parameters
 var renderer = new THREE.WebGLRenderer({antialias:true});
@@ -38,7 +82,49 @@ if (window.innerWidth > 800) {
 };
 
 waitForElm('#city').then((elm) => {
-  console.log('Element is ready');
+
+  function hexToRgb(hex) {
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  }
+
+  function componentToHex(c) {
+    var hex = c.toString(16);
+    return hex.length == 1 ? "0" + hex : hex;
+  }
+
+  function rgbToHex(r, g, b) {
+    return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+  }
+
+  function strToHex(str) {
+    return parseInt(str.replace(/^#/, ''), 16);
+  }
+
+  function changeColorByMouseY(percent) {
+    const lowerColorIndex = Math.floor((colors.length - 1) * (percent / 100));
+    const color1 = colors[lowerColorIndex];
+    const color2 = colors[lowerColorIndex + 1];
+    const newColors = {}
+
+    const weight = 1 - (((colors.length - 1) * (percent / 100)) % 1);
+
+    Object.keys(color1).forEach(key => {
+      const tmpColor1 = hexToRgb(color1[key]);
+      const tmpColor2 = hexToRgb(color2[key]);
+      const mixedColorR = Math.floor((tmpColor1.r * weight) + (tmpColor2.r * (1 - weight)))
+      const mixedColorG = Math.floor((tmpColor1.g * weight) + (tmpColor2.g * (1 - weight)))
+      const mixedColorB = Math.floor((tmpColor1.b * weight) + (tmpColor2.b * (1 - weight)))
+      const mixedColorHex = rgbToHex(mixedColorR, mixedColorG, mixedColorB);
+      newColors[key] = mixedColorHex;
+    });
+    currentColors = newColors;
+  }
+
   const cityElement = document.getElementById('city')
   cityElement.appendChild( renderer.domElement );
   
@@ -64,30 +150,14 @@ waitForElm('#city').then((elm) => {
 
   //----------------------------------------------------------------- FOG background
 
-  var setcolor = 0xfcb103;
-  //var setcolor = 0xF2F111;
-  //var setcolor = 0xFF6347;
 
-  scene.background = new THREE.Color(setcolor);
-  scene.fog = new THREE.Fog(setcolor, 10, 16);
+  scene.background = new THREE.Color(currentColors.fogColor);
+  scene.fog = new THREE.Fog(currentColors.fogColor, 10, 16);
   //scene.fog = new THREE.FogExp2(setcolor, 0.05);
   //----------------------------------------------------------------- RANDOM Function
   function mathRandom(num = 8) {
     var numValue = - Math.random() * num + Math.random() * num;
     return numValue;
-  };
-  //----------------------------------------------------------------- CHANGE bluilding colors
-  var setTintNum = true;
-  function setTintColor() {
-    if (setTintNum) {
-      setTintNum = false;
-      var setColor = 0x000000;
-    } else {
-      setTintNum = true;
-      var setColor = 0x000000;
-    };
-    //setColor = 0x222222;
-    return setColor;
   };
 
   //----------------------------------------------------------------- CREATE City
@@ -97,7 +167,7 @@ waitForElm('#city').then((elm) => {
     for (var i = 1; i<100; i++) {
       var geometry = new THREE.BoxGeometry(1,1,1,segments,segments,segments);
       var material = new THREE.MeshStandardMaterial({
-        color:setTintColor(),
+        color:currentColors.buildingColor,
         wireframe:false,
         //opacity:0.9,
         //transparent:true,
@@ -118,7 +188,10 @@ waitForElm('#city').then((elm) => {
       var wire = new THREE.Mesh(geometry, wmaterial);
       var floor = new THREE.Mesh(geometry, material);
       var wfloor = new THREE.Mesh(geometry, wmaterial);
-      
+
+      cube.name = "cubeobj"
+      floor.name = "floorobj";
+
       cube.add(wfloor);
       cube.castShadow = true;
       cube.receiveShadow = true;
@@ -143,22 +216,26 @@ waitForElm('#city').then((elm) => {
       
       town.add(floor);
       town.add(cube);
+
+      cubes.push(cube);
+      floors.push(floor);
     };
     //----------------------------------------------------------------- Particular
     
-    var gmaterial = new THREE.MeshToonMaterial({color:0xFFFF00, side:THREE.DoubleSide});
+    var gmaterial = new THREE.MeshToonMaterial({color:currentColors.particleColor, side:THREE.DoubleSide});
     var gparticular = new THREE.CircleGeometry(0.01, 3);
     var aparticular = 5;
     
     for (var h = 1; h<300; h++) {
       var particular = new THREE.Mesh(gparticular, gmaterial);
+      particular.name = "particles";
       particular.position.set(mathRandom(aparticular), mathRandom(aparticular),mathRandom(aparticular));
       particular.rotation.set(mathRandom(),mathRandom(),mathRandom());
       smoke.add(particular);
     };
     
     var pmaterial = new THREE.MeshPhongMaterial({
-      color:0x000000,
+      color:currentColors.groundColor,// change later
       side:THREE.DoubleSide,
       roughness: 10,
       metalness: 0.6,
@@ -169,7 +246,8 @@ waitForElm('#city').then((elm) => {
     pelement.rotation.x = -90 * Math.PI / 180;
     pelement.position.y = -0.001;
     pelement.receiveShadow = true;
-    //pelement.material.emissive.setHex(0xFFFFFF + Math.random() * 100000);
+    // pelement.material.emissive.setHex(0xFFFFFF + Math.random() * 100000);
+    pelement.name = "ground";
 
     city.add(pelement);
   };
@@ -183,6 +261,7 @@ waitForElm('#city').then((elm) => {
     event.preventDefault();
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    recomputeColors();
   };
   function onDocumentTouchStart( event ) {
     if ( event.touches.length == 1 ) {
@@ -201,6 +280,37 @@ waitForElm('#city').then((elm) => {
   window.addEventListener('mousemove', onMouseMove, false);
   window.addEventListener('touchstart', onDocumentTouchStart, false );
   window.addEventListener('touchmove', onDocumentTouchMove, false );
+
+  function recomputeColors() {
+    const threeFogColor = new THREE.Color(currentColors.fogColor);
+    scene.fog.color = threeFogColor;
+    scene.background = threeFogColor;
+
+    const mouseYPercentage = ((mouse.y + 1) / 2) * 100;
+    changeColorByMouseY(mouseYPercentage);
+
+    const particles: THREE.Mesh = scene.getObjectByName("particles");
+    const particlesMaterial: THREE.MeshToonMaterial = particles.material;
+    particlesMaterial.color.setHex(strToHex(currentColors.particleColor));
+    
+    const ground: THREE.Mesh = scene.getObjectByName("ground");
+    const groundMaterial: THREE.MeshPhongMaterial = ground.material;
+    groundMaterial.color.setHex(strToHex(currentColors.groundColor));
+
+    // const cubeObj: THREE.Mesh = scene.getObjectByName("cubeobj");
+    cubes.forEach(cube => {
+      const cubeObjMaterial: THREE.MeshStandardMaterial = cube.material;
+      cubeObjMaterial.color.setHex(strToHex(currentColors.buildingColor));
+    });
+    floors.forEach(floor => {
+      const floorObj: THREE.MeshStandardMaterial = floor.material;
+      floorObj.color.setHex(strToHex(currentColors.buildingColor));
+    })
+    lines.forEach(line => {
+      const lineObj: THREE.MeshToonMaterial = line.material;
+      lineObj.color.setHex(strToHex(currentColors.lineColor));
+    })
+  }
 
   //----------------------------------------------------------------- Lights
   var ambientLight = new THREE.AmbientLight(0xFFFFFF, 4);
@@ -238,7 +348,7 @@ waitForElm('#city').then((elm) => {
   }
   //----------------------------------------------------------------- LINES world
 
-  var createCars = function(cScale = 2, cPos = 20, cColor = 0xFFFF00) {
+  var createCars = function(cScale = 2, cPos = 20, cColor = currentColors.lineColor) {
     var cMat = new THREE.MeshToonMaterial({color:cColor, side:THREE.DoubleSide});
     var cGeo = new THREE.BoxGeometry(1, cScale/40, cScale/40);
     var cElem = new THREE.Mesh(cGeo, cMat);
@@ -262,6 +372,7 @@ waitForElm('#city').then((elm) => {
     cElem.castShadow = true;
     cElem.position.y = Math.abs(mathRandom(5));
     city.add(cElem);
+    lines.push(cElem);
   };
 
   var generateLines = function() {
