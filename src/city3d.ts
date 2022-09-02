@@ -1,10 +1,18 @@
 // @ts-nocheck
 
 import * as THREE from 'three';
+import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import { TweenMax, Power1 } from 'gsap';
-
+import tinycolor from 'tinycolor2';
 
 const colors = [
+  {
+    fogColor: "#0a0091",
+    particleColor: "#0a0091",
+    lineColor: "#0a0091",
+    buildingColor: "#020012",
+    groundColor: "#04000a"
+  },
   {
     fogColor: "#562A69",
     particleColor: "#562A69",
@@ -13,34 +21,32 @@ const colors = [
     groundColor: "#00000a"
   },
   {
-    fogColor: "#0a0091",
-    particleColor: "#0a0091",
-    lineColor: "#0a0091",
-    buildingColor: "#060012",
-    groundColor: "#04000a"
-  },
-  {
     fogColor: "#db5139",
     particleColor: "#db5139",
     lineColor: "#db5139",
-    buildingColor: "#0d0600",
-    groundColor: "#080400"
+    buildingColor: "#120000",
+    groundColor: "#0b0000"
   },
   {
     fogColor: "#E79411",
     particleColor: "#E79411",
     lineColor: "#E79411",
-    buildingColor: "#0f0b00",
-    groundColor: "#070500"
+    buildingColor: "#0f0800",
+    groundColor: "#130a00"
   },
   {
     fogColor: "#f2bf58",
     particleColor: "#f2bf58",
     lineColor: "#f2bf58",
     buildingColor: "#160f00",
-    groundColor: "#080700"
+    groundColor: "#1d1b04"
   }
 ];
+
+var cubeCamera;
+var cubeRenderTarget;
+var sphere1;
+
 var cubes = [];
 var floors = [];
 var lines = [];
@@ -83,6 +89,11 @@ if (window.innerWidth > 800) {
 
 waitForElm('#city').then((elm) => {
 
+  function invertHex(hex) {
+    const hexCopy = hex;
+    return (Number(`0x1${hexCopy}`) ^ 0xFFFFFF).toString(16).substr(1).toUpperCase()
+  }
+
   function hexToRgb(hex) {
     var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? {
@@ -123,6 +134,13 @@ waitForElm('#city').then((elm) => {
       newColors[key] = mixedColorHex;
     });
     currentColors = newColors;
+
+    if (sphere1 != null) {
+      const invertedFogColor = new THREE.Color(tinycolor(currentColors.fogColor).complement().lighten(0).toHexString());
+      const sphere1Material: THREE.MeshStandardMaterial = sphere1.material;
+      sphere1Material.color.set(invertedFogColor);
+    }
+
   }
 
   const cityElement = document.getElementById('city')
@@ -137,13 +155,14 @@ waitForElm('#city').then((elm) => {
   };
 
   var camera = new THREE.PerspectiveCamera( 20, window.innerWidth / window.innerHeight, 1, 500 );
-
   camera.position.set(0, 2, 14);
-
+  
   var scene = new THREE.Scene();
   var city = new THREE.Object3D();
   var smoke = new THREE.Object3D();
   var town = new THREE.Object3D();
+  
+  scene.add(camera);
 
   var createCarPos = true;
   var uSpeed = 0.001;
@@ -388,6 +407,32 @@ waitForElm('#city').then((elm) => {
     //TweenMax.to(camera.position, 1, {y:1+Math.random()*4, ease:Expo.easeInOut})
   };
 
+  //----------------------------------------------------------------- SPHERES
+
+  var createSpheres = function() {
+    cubeRenderTarget = new THREE.WebGLCubeRenderTarget(500);
+    cubeRenderTarget.texture.type = THREE.HalfFloatType;
+    cubeCamera = new THREE.CubeCamera(0.5, 100, cubeRenderTarget);
+    // look in the same direction as the main camera
+    cubeCamera.applyQuaternion(new THREE.Quaternion(0, 1, 0, 0));
+    // bring camera closer
+    cubeCamera.position.setZ(-4);
+
+    const sphereMaterial = new THREE.MeshStandardMaterial({
+      envMap: cubeRenderTarget.texture,
+      envMapIntensity: 2,
+      roughness: 0,
+      metalness: 1
+    });
+    
+    sphere1 = new THREE.Mesh(new THREE.IcosahedronGeometry(0.1, 8), sphereMaterial);
+    sphere1.position.set(0, 0, -5);
+    camera.add(sphere1);
+    sphere1.add(cubeCamera);
+  }
+  createSpheres();
+
+
   //----------------------------------------------------------------- ANIMATE
 
   var animate = function() {
@@ -413,9 +458,12 @@ waitForElm('#city').then((elm) => {
     
     smoke.rotation.y += 0.002;
     smoke.rotation.x += 0.002;
-    
+
     camera.lookAt(city.position);
-    renderer.render( scene, camera );  
+    cubeCamera.update(renderer, scene);
+    cubeCamera.lookAt(city.position);
+
+    renderer.render(scene, camera);
   }
 
   //----------------------------------------------------------------- START functions
