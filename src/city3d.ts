@@ -5,6 +5,11 @@ import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import { TweenMax, Power1 } from 'gsap';
 import tinycolor from 'tinycolor2';
 
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
+
 const colors = [
   {
     fogColor: "#0a0091",
@@ -43,6 +48,16 @@ const colors = [
   }
 ];
 
+const bloomSettings = {
+  maxStrength: 1.5,
+  strength: 0.2,
+  strengthDelta: 0.1,
+  radius: 0,
+  threshold: 0
+}
+
+var intersectingObject;
+
 var cubeCamera;
 var cubeRenderTarget;
 var sphere1;
@@ -76,8 +91,9 @@ function waitForElm(selector) {
 
 // Three JS Template
 //----------------------------------------------------------------- BASIC parameters
-var renderer = new THREE.WebGLRenderer({antialias:true});
+var renderer = new THREE.WebGLRenderer({antialias: true});
 renderer.setSize( window.innerWidth, window.innerHeight );
+// renderer.toneMapping = THREE.ReinhardToneMapping;
 
 if (window.innerWidth > 800) {
   renderer.shadowMap.enabled = true;
@@ -135,23 +151,25 @@ waitForElm('#city').then((elm) => {
     });
     currentColors = newColors;
 
-    if (sphere1 != null) {
-      const invertedFogColor = new THREE.Color(tinycolor(currentColors.fogColor).complement().lighten(0).toHexString());
-      const sphere1Material: THREE.MeshStandardMaterial = sphere1.material;
-      sphere1Material.color.set(invertedFogColor);
-    }
+    // if (sphere1 != null) {
+    //   const invertedFogColor = new THREE.Color(tinycolor(currentColors.fogColor).complement().lighten(0).toHexString());
+    //   const sphere1Material: THREE.MeshStandardMaterial = sphere1.material;
+    //   sphere1Material.color.set(invertedFogColor);
+    // }
 
   }
 
   const cityElement = document.getElementById('city')
   cityElement.appendChild( renderer.domElement );
   
-  
   window.addEventListener('resize', onWindowResize, false);
   function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
-    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    bloomComposer.setSize(window.innerWidth, window.innerHeight);
+    finalComposer.setSize(window.innerWidth, window.innerHeight);
   };
 
   var camera = new THREE.PerspectiveCamera( 20, window.innerWidth / window.innerHeight, 1, 500 );
@@ -163,6 +181,60 @@ waitForElm('#city').then((elm) => {
   var town = new THREE.Object3D();
   
   scene.add(camera);
+  
+  // set up bloom
+  const ENTIRE_SCENE = 0, BLOOM_SCENE = 1;
+  const bloomLayer = new THREE.Layers();
+	bloomLayer.set(BLOOM_SCENE);
+
+  const darkMaterial = new THREE.MeshBasicMaterial({ color: 'black' });
+  const materials = {};
+
+  const renderScene = new RenderPass(scene, camera);
+  const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+  bloomPass.strength = bloomSettings.strength;
+  bloomPass.radius = bloomSettings.radius;
+  bloomPass.threshold = bloomSettings.threshold;
+
+  const bloomComposer = new EffectComposer(renderer);
+  bloomComposer.renderToScreen = false;
+  bloomComposer.addPass(renderScene);
+  bloomComposer.addPass(bloomPass);
+
+  const finalPassIncludingBloom = new ShaderPass(
+    new THREE.ShaderMaterial({
+      uniforms: {
+        baseTexture: { value: null },
+        bloomTexture: { value: bloomComposer.renderTarget2.texture }
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D baseTexture;
+        uniform sampler2D bloomTexture;
+        varying vec2 vUv;
+
+        void main() {
+          gl_FragColor = ( texture2D( baseTexture, vUv ) + vec4( 1.0 ) * texture2D( bloomTexture, vUv ) );
+        }
+      `,
+      defines: {}
+    }), 'baseTexture'
+  );
+  finalPassIncludingBloom.needsSwap = true;
+
+  const finalComposer = new EffectComposer(renderer);
+  finalComposer.addPass(renderScene);
+  finalComposer.addPass(finalPassIncludingBloom);
+
+  const sceneFog = new THREE.Fog(currentColors.fogColor, 10, 16);
+  const noFog = new THREE.Fog(0x000, 1000, 1000);
 
   var createCarPos = true;
   var uSpeed = 0.001;
@@ -171,7 +243,7 @@ waitForElm('#city').then((elm) => {
 
 
   scene.background = new THREE.Color(currentColors.fogColor);
-  scene.fog = new THREE.Fog(currentColors.fogColor, 10, 16);
+  scene.fog = sceneFog;
   //scene.fog = new THREE.FogExp2(setcolor, 0.05);
   //----------------------------------------------------------------- RANDOM Function
   function mathRandom(num = 8) {
@@ -273,14 +345,32 @@ waitForElm('#city').then((elm) => {
 
   //----------------------------------------------------------------- MOUSE function
   var raycaster = new THREE.Raycaster();
-  var mouse = new THREE.Vector2(), INTERSECTED;
-  var intersected;
+  var mouse = new THREE.Vector2();
 
   function onMouseMove(event) {
     event.preventDefault();
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
     recomputeColors();
+
+    // bloom effects
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(camera.children, false);
+    if (intersects.length > 0) {
+      const object = intersects[0].object;
+      intersectingObject = object;
+      document.body.style.cursor = 'pointer';
+      // console.log('object:', object)
+      // put in a bloom scene for each sphere later
+      // object.layers.enable(BLOOM_SCENE);
+    } else {
+      document.body.style.cursor = 'unset';
+      intersectingObject = null;
+    }
+
   };
   function onDocumentTouchStart( event ) {
     if ( event.touches.length == 1 ) {
@@ -420,18 +510,43 @@ waitForElm('#city').then((elm) => {
 
     const sphereMaterial = new THREE.MeshStandardMaterial({
       envMap: cubeRenderTarget.texture,
-      envMapIntensity: 2,
+      // envMapIntensity: 2,
       roughness: 0,
       metalness: 1
     });
     
     sphere1 = new THREE.Mesh(new THREE.IcosahedronGeometry(0.1, 8), sphereMaterial);
     sphere1.position.set(0, 0, -5);
+    sphere1.layers.enable(BLOOM_SCENE);
+    console.log('sphere1:', sphere1)
     camera.add(sphere1);
     sphere1.add(cubeCamera);
   }
   createSpheres();
 
+  //----------------------------------------------------------------- Bloom controls
+
+  function darkenNonBloomed( obj ) {
+    if (obj.isMesh && bloomLayer.test(obj.layers) === false) {
+      // console.log('darkening', obj)
+      materials[obj.uuid] = obj.material;
+      obj.material = darkMaterial;
+    }
+    // darken fog as it isn't affected as a child of the scene in the same way that the other objects are
+    // materials['fog'] = scene.fog;
+    scene.fog = noFog;
+  }
+
+  function restoreDarkenedNonBloomedMaterial(obj) {
+    if (materials[obj.uuid]) {
+      obj.material = materials[obj.uuid];
+      delete materials[obj.uuid];
+    }
+    // restore fog
+    // scene.fog = materials['fog'];
+    scene.fog = sceneFog;
+    // delete materials['fog'];
+  }
 
   //----------------------------------------------------------------- ANIMATE
 
@@ -463,7 +578,23 @@ waitForElm('#city').then((elm) => {
     cubeCamera.update(renderer, scene);
     cubeCamera.lookAt(city.position);
 
-    renderer.render(scene, camera);
+    scene.traverse(darkenNonBloomed);
+    bloomComposer.render();
+    scene.traverse(restoreDarkenedNonBloomedMaterial);
+
+    // dynamic bloom controls
+    bloomPass.strength = bloomSettings.strength;
+    bloomPass.radius = bloomSettings.radius;
+    bloomPass.threshold = bloomSettings.threshold;
+
+    if (intersectingObject != null && bloomSettings.strength < bloomSettings.maxStrength) {
+      bloomSettings.strength += bloomSettings.strengthDelta;
+    } else if (bloomSettings.strength > 0) {
+      bloomSettings.strength -= bloomSettings.strengthDelta;
+    }
+
+    finalComposer.render();
+    // renderer.render(scene, camera);
   }
 
   //----------------------------------------------------------------- START functions
