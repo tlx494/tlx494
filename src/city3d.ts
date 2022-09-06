@@ -392,36 +392,36 @@ waitForElm('#city').then((elm) => {
   window.addEventListener('touchstart', onDocumentTouchStart, false );
   window.addEventListener('touchmove', onDocumentTouchMove, false );
 
-  function recomputeColors() {
-    const threeFogColor = new THREE.Color(currentColors.fogColor);
-    scene.fog.color = threeFogColor;
-    scene.background = threeFogColor;
+  // function recomputeColors() {
+  //   const threeFogColor = new THREE.Color(currentColors.fogColor);
+  //   scene.fog.color = threeFogColor;
+  //   scene.background = threeFogColor;
 
-    const mouseYPercentage = ((mouse.y + 1) / 2) * 100;
-    changeColorByMouseY(mouseYPercentage);
+  //   const mouseYPercentage = ((mouse.y + 1) / 2) * 100;
+  //   changeColorByMouseY(mouseYPercentage);
 
-    const particles: THREE.Mesh = scene.getObjectByName("particles");
-    const particlesMaterial: THREE.MeshToonMaterial = particles.material;
-    particlesMaterial.color.setHex(strToHex(currentColors.particleColor));
+  //   const particles: THREE.Mesh = scene.getObjectByName("particles");
+  //   const particlesMaterial: THREE.MeshToonMaterial = particles.material;
+  //   particlesMaterial.color.setHex(strToHex(currentColors.particleColor));
     
-    const ground: THREE.Mesh = scene.getObjectByName("ground");
-    const groundMaterial: THREE.MeshPhongMaterial = ground.material;
-    groundMaterial.color.setHex(strToHex(currentColors.groundColor));
+  //   const ground: THREE.Mesh = scene.getObjectByName("ground");
+  //   const groundMaterial: THREE.MeshPhongMaterial = ground.material;
+  //   groundMaterial.color.setHex(strToHex(currentColors.groundColor));
 
-    // const cubeObj: THREE.Mesh = scene.getObjectByName("cubeobj");
-    cubes.forEach(cube => {
-      const cubeObjMaterial: THREE.MeshStandardMaterial = cube.material;
-      cubeObjMaterial.color.setHex(strToHex(currentColors.buildingColor));
-    });
-    floors.forEach(floor => {
-      const floorObj: THREE.MeshStandardMaterial = floor.material;
-      floorObj.color.setHex(strToHex(currentColors.buildingColor));
-    })
-    lines.forEach(line => {
-      const lineObj: THREE.MeshToonMaterial = line.material;
-      lineObj.color.setHex(strToHex(currentColors.lineColor));
-    })
-  }
+  //   // const cubeObj: THREE.Mesh = scene.getObjectByName("cubeobj");
+  //   cubes.forEach(cube => {
+  //     const cubeObjMaterial: THREE.MeshStandardMaterial = cube.material;
+  //     cubeObjMaterial.color.setHex(strToHex(currentColors.buildingColor));
+  //   });
+  //   floors.forEach(floor => {
+  //     const floorObj: THREE.MeshStandardMaterial = floor.material;
+  //     floorObj.color.setHex(strToHex(currentColors.buildingColor));
+  //   })
+  //   lines.forEach(line => {
+  //     const lineObj: THREE.MeshToonMaterial = line.material;
+  //     lineObj.color.setHex(strToHex(currentColors.lineColor));
+  //   })
+  // }
 
   //----------------------------------------------------------------- Lights
   var ambientLight = new THREE.AmbientLight(0xFFFFFF, 4);
