@@ -73,7 +73,6 @@ function App() {
         >
           software engineer <Pipe /> pianist <Pipe /> composer <Pipe /> artist{" "}
           <Pipe /> writer
-          <LinkedInIcon fontSize="large" />
         </Box>
       </div>
     </ThemeProvider>

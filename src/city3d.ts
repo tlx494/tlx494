@@ -92,7 +92,10 @@ var bloomComposer;
 var createCarPos;
 var uSpeed;
 
+
 var stats;
+// var time = Date.now() * 0.00005;
+var clock = new THREE.Clock();
 
 
 function waitForElm(selector) {
@@ -268,6 +271,20 @@ function setupScene(cityRef) {
   scene.background = new THREE.Color(currentColors.fogColor);
   scene.fog = sceneFog;
   // scene.fog = new THREE.FogExp2(setcolor, 0.05);
+
+
+  // IMAGE
+  var loader = new THREE.TextureLoader();
+  var material = new THREE.MeshToonMaterial({
+    map: loader.load(process.env.PUBLIC_URL + '/linkedin-logo.png'),
+    transparent: true,
+    needsUpdate: true
+  });
+  var geometry = new THREE.PlaneGeometry(0.2, 0.2);
+  var mesh = new THREE.Mesh(geometry, material);
+  mesh.position.z = 0.1;
+  mesh.scale.set(0.25, 0.25, 1);
+  sphere1.add(mesh);
 
 }
 //----------------------------------------------------------------- RANDOM Function
@@ -585,12 +602,28 @@ function setupListeners() {
   window.addEventListener('mousemove', onMouseMove, false);
   window.addEventListener('touchstart', onDocumentTouchStart, false );
   window.addEventListener('touchmove', onDocumentTouchMove, false );
+  window.addEventListener( 'wheel', onMouseWheel, false );
 }
 
 //----------------------------------------------------------------- ANIMATE
 
+function onMouseWheel(e) {
+  // const rotationDelta = +e.wheelDeltaY / 500;
+
+  // for (let i=0, l=town.children.length; i < l; i ++) {
+  //   var object = town.children[i];
+  //   if (object.rotation.y >= 0 && object.rotation.y <= 0.5) {
+  //     console.log(object.rotation.y)
+  //     object.scale.y += e.wheelDeltaY / 10000;
+  //     object.rotation.y += Math.min(Math.max(rotationDelta * Math.PI / 180, 0), 0.5);
+  //     object.rotation.z += Math.min(Math.max(rotationDelta * Math.PI / 180, 0), 0.5);
+  //   }
+  // }
+}
+
 function moveSphere() {
-  // sphere1
+  const currentTime = clock.getElapsedTime() * 2.5;
+  sphere1.position.y = Math.sin(currentTime) * 0.005;
 }
 
 var animate = function() {
@@ -607,12 +640,12 @@ var animate = function() {
   //camera.position.y -= (-(mouse.y * 20) - camera.rotation.y) * uSpeed;;
   
   // rotate the buildings?
-  for ( let i = 0, l = town.children.length; i < l; i ++ ) {
-    var object = town.children[ i ];
-    object.scale.y = Math.sin(time*50) * object.rotationValue;
-    object.rotation.y = (Math.sin((time/object.rotationValue) * Math.PI / 180) * 180);
-    object.rotation.z = (Math.cos((time/object.rotationValue) * Math.PI / 180) * 180);
-  }
+  // for ( let i = 0, l = town.children.length; i < l; i ++ ) {
+  //   var object = town.children[ i ];
+  //   object.scale.y = Math.sin(time*50) * object.rotationValue;
+  //   object.rotation.y = (Math.sin((time/object.rotationValue) * Math.PI / 180) * 180);
+  //   object.rotation.z = (Math.cos((time/object.rotationValue) * Math.PI / 180) * 180);
+  // }
   
   smoke.rotation.y += 0.002;
   smoke.rotation.x += 0.002;
@@ -624,8 +657,10 @@ var animate = function() {
   cubeCamera.lookAt(city.position);
 
   scene.traverse(darkenNonBloomed);
+  // camera.traverse(darkenNonBloomed);
   bloomComposer.render();
   scene.traverse(restoreDarkenedNonBloomedMaterial);
+  // camera.traverse(restoreDarkenedNonBloomedMaterial);
 
   // dynamic bloom controls
   bloomPass.strength = bloomSettings.strength;
