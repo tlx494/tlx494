@@ -363,8 +363,6 @@ function init() {
   var pmaterial = new THREE.MeshPhongMaterial({
     color:currentColors.groundColor,// change later
     side:THREE.DoubleSide,
-    // roughness: 10,
-    // metalness: 0.6,
     opacity:0.9,
     transparent:true});
   var pgeometry = new THREE.PlaneGeometry(60,60);
@@ -591,13 +589,17 @@ function setupListeners() {
 
 //----------------------------------------------------------------- ANIMATE
 
+function moveSphere() {
+  // sphere1
+}
+
 var animate = function() {
   stats.begin();
   
   city.rotation.y -= ((mouse.x * 2) - camera.rotation.y) * uSpeed;
   city.rotation.x -= (-(mouse.y * 2) - camera.rotation.x) * uSpeed;
   if (city.rotation.x < -0.05) city.rotation.x = -0.05;
-  else if (city.rotation.x>1) city.rotation.x = 1;
+  else if (city.rotation.x > 1) city.rotation.x = 1;
   var cityRotation = Math.sin(Date.now() / 5000) * 13;
   //city.rotation.x = cityRotation * Math.PI / 180;
   
@@ -607,13 +609,15 @@ var animate = function() {
   // rotate the buildings?
   for ( let i = 0, l = town.children.length; i < l; i ++ ) {
     var object = town.children[ i ];
-    //object.scale.y = Math.sin(time*50) * object.rotationValue;
-    //object.rotation.y = (Math.sin((time/object.rotationValue) * Math.PI / 180) * 180);
-    //object.rotation.z = (Math.cos((time/object.rotationValue) * Math.PI / 180) * 180);
+    object.scale.y = Math.sin(time*50) * object.rotationValue;
+    object.rotation.y = (Math.sin((time/object.rotationValue) * Math.PI / 180) * 180);
+    object.rotation.z = (Math.cos((time/object.rotationValue) * Math.PI / 180) * 180);
   }
   
   smoke.rotation.y += 0.002;
   smoke.rotation.x += 0.002;
+
+  moveSphere();
 
   camera.lookAt(city.position);
   cubeCamera.update(renderer, scene);
