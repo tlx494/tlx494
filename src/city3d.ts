@@ -9,6 +9,10 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
+import Stats from 'stats.js';
+var stats = new Stats();
+stats.showPanel( 1 ); // 0: fps, 1: ms, 2: mb, 3+: custom
+document.body.appendChild( stats.dom );
 
 const colors = [
   {
@@ -392,36 +396,36 @@ waitForElm('#city').then((elm) => {
   window.addEventListener('touchstart', onDocumentTouchStart, false );
   window.addEventListener('touchmove', onDocumentTouchMove, false );
 
-  // function recomputeColors() {
-  //   const threeFogColor = new THREE.Color(currentColors.fogColor);
-  //   scene.fog.color = threeFogColor;
-  //   scene.background = threeFogColor;
+  function recomputeColors() {
+    const threeFogColor = new THREE.Color(currentColors.fogColor);
+    scene.fog.color = threeFogColor;
+    scene.background = threeFogColor;
 
-  //   const mouseYPercentage = ((mouse.y + 1) / 2) * 100;
-  //   changeColorByMouseY(mouseYPercentage);
+    const mouseYPercentage = ((mouse.y + 1) / 2) * 100;
+    changeColorByMouseY(mouseYPercentage);
 
-  //   const particles: THREE.Mesh = scene.getObjectByName("particles");
-  //   const particlesMaterial: THREE.MeshToonMaterial = particles.material;
-  //   particlesMaterial.color.setHex(strToHex(currentColors.particleColor));
+    const particles: THREE.Mesh = scene.getObjectByName("particles");
+    const particlesMaterial: THREE.MeshToonMaterial = particles.material;
+    particlesMaterial.color.setHex(strToHex(currentColors.particleColor));
     
-  //   const ground: THREE.Mesh = scene.getObjectByName("ground");
-  //   const groundMaterial: THREE.MeshPhongMaterial = ground.material;
-  //   groundMaterial.color.setHex(strToHex(currentColors.groundColor));
+    const ground: THREE.Mesh = scene.getObjectByName("ground");
+    const groundMaterial: THREE.MeshPhongMaterial = ground.material;
+    groundMaterial.color.setHex(strToHex(currentColors.groundColor));
 
-  //   // const cubeObj: THREE.Mesh = scene.getObjectByName("cubeobj");
-  //   cubes.forEach(cube => {
-  //     const cubeObjMaterial: THREE.MeshStandardMaterial = cube.material;
-  //     cubeObjMaterial.color.setHex(strToHex(currentColors.buildingColor));
-  //   });
-  //   floors.forEach(floor => {
-  //     const floorObj: THREE.MeshStandardMaterial = floor.material;
-  //     floorObj.color.setHex(strToHex(currentColors.buildingColor));
-  //   })
-  //   lines.forEach(line => {
-  //     const lineObj: THREE.MeshToonMaterial = line.material;
-  //     lineObj.color.setHex(strToHex(currentColors.lineColor));
-  //   })
-  // }
+    // const cubeObj: THREE.Mesh = scene.getObjectByName("cubeobj");
+    cubes.forEach(cube => {
+      const cubeObjMaterial: THREE.MeshStandardMaterial = cube.material;
+      cubeObjMaterial.color.setHex(strToHex(currentColors.buildingColor));
+    });
+    floors.forEach(floor => {
+      const floorObj: THREE.MeshStandardMaterial = floor.material;
+      floorObj.color.setHex(strToHex(currentColors.buildingColor));
+    })
+    lines.forEach(line => {
+      const lineObj: THREE.MeshToonMaterial = line.material;
+      lineObj.color.setHex(strToHex(currentColors.lineColor));
+    })
+  }
 
   //----------------------------------------------------------------- Lights
   var ambientLight = new THREE.AmbientLight(0xFFFFFF, 4);
@@ -553,8 +557,7 @@ waitForElm('#city').then((elm) => {
   //----------------------------------------------------------------- ANIMATE
 
   var animate = function() {
-    var time = Date.now() * 0.00005;
-    requestAnimationFrame(animate);
+    stats.begin();
     
     city.rotation.y -= ((mouse.x * 2) - camera.rotation.y) * uSpeed;
     city.rotation.x -= (-(mouse.y * 2) - camera.rotation.x) * uSpeed;
@@ -566,6 +569,7 @@ waitForElm('#city').then((elm) => {
     //console.log(city.rotation.x);
     //camera.position.y -= (-(mouse.y * 20) - camera.rotation.y) * uSpeed;;
     
+    // rotate the buildings?
     for ( let i = 0, l = town.children.length; i < l; i ++ ) {
       var object = town.children[ i ];
       //object.scale.y = Math.sin(time*50) * object.rotationValue;
@@ -597,6 +601,9 @@ waitForElm('#city').then((elm) => {
 
     finalComposer.render();
     // renderer.render(scene, camera);
+    
+    stats.end();
+    requestAnimationFrame(animate);
   }
 
   //----------------------------------------------------------------- START functions
