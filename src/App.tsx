@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import CssBaseline from "@mui/material/CssBaseline";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-import "./city3d";
+import StartThreeJS from "./city3d";
 import { fontSize } from "@mui/system";
 import { Box, Icon, Link } from "@mui/material";
 import LinkedInIcon from "@mui/icons-material/LinkedIn";
@@ -19,24 +19,30 @@ const theme = createTheme({
   },
 });
 
-const City = () => {
-  return (
-    <div
-      id="city"
-      style={{
-        position: "fixed",
-        width: "100vw",
-        height: "100vh",
-      }}
-    ></div>
-  );
-};
-
 const Pipe = () => {
   return <span style={{ color: "#8f8f8f" }}>|</span>;
 };
 
 function App() {
+  const cityRef = useRef<any>();
+  useEffect(() => {
+    if (cityRef != null) {
+      StartThreeJS(cityRef);
+    }
+  }, [cityRef]);
+  const City = () => {
+    return (
+      <div
+        ref={cityRef}
+        id="city"
+        style={{
+          position: "fixed",
+          width: "100vw",
+          height: "100vh",
+        }}
+      ></div>
+    );
+  };
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
