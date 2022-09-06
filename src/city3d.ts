@@ -50,11 +50,13 @@ const colors = [
 
 const bloomSettings = {
   maxStrength: 1.5,
-  strength: 0.2,
+  strength: 0,
   strengthDelta: 0.1,
   radius: 0,
   threshold: 0
 }
+
+// TODO - improve performance when browser left open, maybe by deleting lines - clean up arrays
 
 var intersectingObject;
 
