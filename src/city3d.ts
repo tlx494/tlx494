@@ -363,8 +363,8 @@ function init() {
   var pmaterial = new THREE.MeshPhongMaterial({
     color:currentColors.groundColor,// change later
     side:THREE.DoubleSide,
-    roughness: 10,
-    metalness: 0.6,
+    // roughness: 10,
+    // metalness: 0.6,
     opacity:0.9,
     transparent:true});
   var pgeometry = new THREE.PlaneGeometry(60,60);
