@@ -1,3 +1,3 @@
 # Daniel O'Dea
 
-Hi.
+Full stack software engineer, classical pianist/composer, and artist.
