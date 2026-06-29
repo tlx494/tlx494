@@ -25,6 +25,8 @@ const GROUND_FRICTION = 0.86;
 const SMASH_SPEED = 2.2; // downward speed needed to crash through a rooftop
 const MAX_BALLS = 220;
 const BALLS_PER_CLICK = 6;
+// a curated neon palette (harmonises with the scene instead of random rainbow)
+const BALL_COLORS = ['#ff5d8f', '#ffd36e', '#7df9ff', '#b07cff', '#ff8a5c', '#9affc4'];
 
 const colors = [
   {
@@ -427,7 +429,7 @@ function onMouseMove(event) {
     // put in a bloom scene for each sphere later
     // object.layers.enable(BLOOM_SCENE);
   } else {
-    document.body.style.cursor = 'unset';
+    document.body.style.cursor = 'crosshair';
     intersectingObject = null;
   }
 
@@ -703,7 +705,7 @@ function spawnBalls(x, z, count) {
         if (idx >= 0) old.home.contained.splice(idx, 1);
       }
     }
-    const color = new THREE.Color().setHSL(Math.random(), 0.85, 0.6);
+    const color = new THREE.Color(BALL_COLORS[Math.floor(Math.random() * BALL_COLORS.length)]);
     const mat = new THREE.MeshStandardMaterial({
       color: color,
       emissive: color,

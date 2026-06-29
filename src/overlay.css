@@ -1,0 +1,264 @@
+/* ============================================================
+   "Nocturne" — the typographic identity layered over the city
+   ============================================================ */
+
+:root {
+  --ink: #f7f5ef;
+  --muted: rgba(247, 245, 239, 0.55);
+  --gold: #e9b45a;
+  --gold-soft: rgba(233, 180, 90, 0.85);
+  --night: 6, 4, 16;
+}
+
+/* --- cinematic depth + legibility over the colour-shifting scene --- */
+.scene-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(125% 125% at 50% 40%, transparent 46%, rgba(var(--night), 0.6) 100%);
+}
+.scene-scrim {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.scene-scrim--top {
+  top: 0;
+  height: 36vh;
+  background: linear-gradient(to bottom, rgba(var(--night), 0.6), transparent);
+}
+.scene-scrim--bottom {
+  bottom: 0;
+  height: 26vh;
+  background: linear-gradient(to top, rgba(var(--night), 0.55), transparent);
+}
+
+body {
+  cursor: crosshair;
+}
+
+/* --- overlay shell: clicks pass straight through to the city --- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.hero {
+  position: absolute;
+  top: 13%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(92vw, 940px);
+  text-align: center;
+}
+
+/* score-style expression marking */
+.eyebrow {
+  margin: 0 0 0.7rem;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: clamp(0.95rem, 2.4vw, 1.4rem);
+  letter-spacing: 0.2em;
+  color: var(--gold);
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.5);
+}
+
+.name {
+  margin: 0;
+  font-family: 'Dune', 'Montserrat', sans-serif;
+  font-weight: 400;
+  font-size: clamp(2.5rem, 8.6vw, 6.1rem);
+  line-height: 0.98;
+  letter-spacing: 0.06em;
+  /* solid fallback for browsers without background-clip: text (name stays visible) */
+  color: #fff7e8;
+  filter: drop-shadow(0 3px 24px rgba(0, 0, 0, 0.55)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.65));
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .name {
+    /* warm sheen that drifts across the letters */
+    background: linear-gradient(
+      100deg,
+      #ffffff 0%,
+      #fff7e8 32%,
+      #f1d49b 50%,
+      #fff7e8 68%,
+      #ffffff 100%
+    );
+    background-size: 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: sheen 9s ease-in-out infinite;
+  }
+}
+
+/* the signature: a staff line / neon wire with light running along it */
+.rule {
+  position: relative;
+  width: min(78%, 580px);
+  height: 1px;
+  margin: 1.5rem auto 1.4rem;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(247, 245, 239, 0.5) 18%,
+    rgba(247, 245, 239, 0.5) 82%,
+    transparent
+  );
+  transform-origin: center;
+}
+.rule::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -24%;
+  width: 24%;
+  height: 3px;
+  background: linear-gradient(to right, transparent, var(--gold), transparent);
+  filter: blur(1px);
+  animation: travel 6.5s ease-in-out infinite;
+}
+
+.creds {
+  margin: 0;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(1.1rem, 3vw, 1.65rem);
+  letter-spacing: 0.03em;
+  color: rgba(247, 245, 239, 0.94);
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.55);
+}
+.creds .sep {
+  margin: 0 0.55em;
+  color: var(--gold-soft);
+  opacity: 0.7;
+}
+
+.link {
+  position: relative;
+  color: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+.link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: var(--gold);
+  box-shadow: 0 0 9px var(--gold-soft);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.38s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.link:hover {
+  color: #fff;
+  text-shadow: 0 0 18px var(--gold-soft);
+}
+.link:hover::after {
+  transform: scaleX(1);
+}
+.link:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+/* quiet utility cue, bottom centre */
+.cue {
+  position: absolute;
+  left: 50%;
+  bottom: 5.5%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7em;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+  font-size: 0.66rem;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.cue .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 11px var(--gold);
+  animation: pulse 2.4s ease-in-out infinite;
+}
+
+/* --- orchestrated entrance --- */
+.rise {
+  opacity: 0;
+  transform: translateY(15px);
+  animation: rise 0.95s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+.d1 { animation-delay: 0.15s; }
+.d2 { animation-delay: 0.34s; }
+.d4 { animation-delay: 0.95s; }
+.d5 { animation-delay: 1.3s; }
+.rule.rise {
+  opacity: 0;
+  transform: scaleX(0);
+  animation: ruleIn 1s cubic-bezier(0.2, 0.7, 0.2, 1) 0.64s forwards;
+}
+
+@keyframes rise {
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ruleIn {
+  to { opacity: 1; transform: scaleX(1); }
+}
+@keyframes sheen {
+  0%, 100% { background-position: 0% 0; }
+  50% { background-position: 100% 0; }
+}
+@keyframes travel {
+  0% { left: -24%; }
+  55% { left: 100%; }
+  100% { left: 100%; }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.45; transform: scale(0.82); }
+  50% { opacity: 1; transform: scale(1.12); }
+}
+
+@media (max-width: 560px) {
+  .hero { top: 16%; }
+  .cue { letter-spacing: 0.26em; font-size: 0.6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .rule.rise,
+  .name,
+  .rule::after,
+  .cue .dot {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .rule.rise { transform: scaleX(1) !important; }
+}
