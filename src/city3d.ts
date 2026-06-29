@@ -117,6 +117,7 @@ var balls = [];
 var buildings = []; // collidable building "containers"
 var ballGeo;
 var groundMesh;
+var tallestTop = 4; // height of the tallest rooftop — balls drop from about here
 
 
 // Three JS Template
@@ -369,6 +370,7 @@ function init() {
       popped: false,
     });
   });
+  tallestTop = buildings.reduce((m, b) => Math.max(m, b.top), 0);
 
   //----------------------------------------------------------------- Particular
   
@@ -690,7 +692,8 @@ function onPointerClick(event) {
 }
 
 function spawnBalls(x, z, count) {
-  const dropY = 9;
+  // drop in from roughly the height of the tallest building
+  const dropY = tallestTop;
   for (let i = 0; i < count; i++) {
     if (balls.length >= MAX_BALLS) {
       const old = balls.shift();
@@ -714,7 +717,7 @@ function spawnBalls(x, z, count) {
       mesh: mesh,
       pos: new THREE.Vector3(
         x + (Math.random() - 0.5) * 0.7,
-        dropY + Math.random() * 1.5,
+        dropY + Math.random() * 0.5,
         z + (Math.random() - 0.5) * 0.7
       ),
       vel: new THREE.Vector3((Math.random() - 0.5) * 1.5, 0, (Math.random() - 0.5) * 1.5),
