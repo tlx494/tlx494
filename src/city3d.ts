@@ -1,15 +1,30 @@
 // @ts-nocheck
 
 import * as THREE from 'three';
-import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import { TweenMax, Power1 } from 'gsap';
-import tinycolor from 'tinycolor2';
 
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
-import Stats from 'stats.js';
+
+const LINKEDIN_URL = 'https://www.linkedin.com/in/daniel-odea/';
+
+// dial back the most expensive effects on weak / old machines
+const isLowEndDevice =
+  (typeof navigator !== 'undefined' &&
+    ((navigator.hardwareConcurrency || 8) <= 4 ||
+      (navigator.deviceMemory || 8) <= 4)) ||
+  (typeof window !== 'undefined' && window.innerWidth <= 800);
+
+// ---- bouncy ball physics tuning ----
+const GRAVITY = 16;
+const BALL_R = 0.18;
+const RESTITUTION = 0.62;
+const GROUND_FRICTION = 0.86;
+const SMASH_SPEED = 2.2; // downward speed needed to crash through a rooftop
+const MAX_BALLS = 220;
+const BALLS_PER_CLICK = 6;
 
 const colors = [
   {
@@ -73,9 +88,9 @@ var lines = [];
 var currentColors = colors[Math.floor(colors.length/2)];
 var raycaster = new THREE.Raycaster();
 var mouse = new THREE.Vector2();
-const ENTIRE_SCENE = 0, BLOOM_SCENE = 1;
+const BLOOM_SCENE = 1;
 const bloomLayer = new THREE.Layers();
-var camera = new THREE.PerspectiveCamera( 20, window.innerWidth / window.innerHeight, 1, 500 );
+var camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 500 );
 
 var scene;
 var city;
@@ -90,45 +105,22 @@ var materials;
 var bloomPass;
 var bloomComposer;
 var createCarPos;
-var uSpeed;
 
 
-var stats;
 // var time = Date.now() * 0.00005;
 var clock = new THREE.Clock();
+var elapsedTime = 0;
+var frameCount = 0;
 
-
-function waitForElm(selector) {
-  return new Promise(resolve => {
-      if (document.querySelector(selector)) {
-          return resolve(document.querySelector(selector));
-      }
-
-      const observer = new MutationObserver(mutations => {
-          if (document.querySelector(selector)) {
-              resolve(document.querySelector(selector));
-              observer.disconnect();
-          }
-      });
-
-      observer.observe(document.body, {
-          childList: true,
-          subtree: true
-      });
-  });
-}
-
+// bouncy ball physics state
+var balls = [];
+var buildings = []; // collidable building "containers"
+var ballGeo;
+var groundMesh;
 
 
 // Three JS Template
 //----------------------------------------------------------------- BASIC parameters
-
-// waitForElm('#city').then((elm) => {
-
-function invertHex(hex) {
-  const hexCopy = hex;
-  return (Number(`0x1${hexCopy}`) ^ 0xFFFFFF).toString(16).substr(1).toUpperCase()
-}
 
 function hexToRgb(hex) {
   var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -141,7 +133,7 @@ function hexToRgb(hex) {
 
 function componentToHex(c) {
   var hex = c.toString(16);
-  return hex.length == 1 ? "0" + hex : hex;
+  return hex.length === 1 ? "0" + hex : hex;
 }
 
 function rgbToHex(r, g, b) {
@@ -181,10 +173,12 @@ function changeColorByMouseY(percent) {
 function setupScene(cityRef) {
   
   // setup renderer
-  renderer = new THREE.WebGLRenderer({antialias: true});
+  renderer = new THREE.WebGLRenderer({antialias: !isLowEndDevice, powerPreference: 'high-performance'});
   renderer.setSize( window.innerWidth, window.innerHeight );
+  // capping the pixel ratio is the single biggest win on weak GPUs
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, isLowEndDevice ? 1 : 1.5));
 
-  if (window.innerWidth > 800) {
+  if (window.innerWidth > 800 && !isLowEndDevice) {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.shadowMap.needsUpdate = true;
@@ -203,7 +197,8 @@ function setupScene(cityRef) {
     finalComposer.setSize(window.innerWidth, window.innerHeight);
   };
 
-  camera.position.set(0, 2, 14);
+  // diagonal ~45-degree view looking down on the city (kept within the fog range)
+  camera.position.set(0, 9, 9);
 
   scene = new THREE.Scene();
   city = new THREE.Object3D();
@@ -264,7 +259,6 @@ function setupScene(cityRef) {
   noFog = new THREE.Fog(0x000, 1000, 1000);
 
   createCarPos = true;
-  uSpeed = 0.001;
 
   //----------------------------------------------------------------- FOG background
 
@@ -297,11 +291,7 @@ function mathRandom(num = 8) {
 
 function init() {
 
-  // STATS
-
-  stats = new Stats();
-  stats.showPanel(1); // 0: fps, 1: ms, 2: mb, 3+: custom
-  document.body.appendChild(stats.dom);
+  ballGeo = new THREE.SphereGeometry(BALL_R, 12, 12);
 
   var segments = 2;
   for (var i = 1; i<100; i++) {
@@ -325,7 +315,6 @@ function init() {
       shading:THREE.FlatShading*/});
 
     var cube = new THREE.Mesh(geometry, material);
-    var wire = new THREE.Mesh(geometry, wmaterial);
     var floor = new THREE.Mesh(geometry, material);
     var wfloor = new THREE.Mesh(geometry, wmaterial);
 
@@ -362,6 +351,25 @@ function init() {
   };
   createLights();
   createGridHelper();
+
+  // register tall-enough buildings as ball containers (world == local: city/town are unrotated at the origin)
+  cubes.forEach(function (c) {
+    const top = c.scale.y / 2;
+    if (top < 0.5) return; // too short to hold anything — balls just bounce off it
+    buildings.push({
+      mesh: c,
+      cx: c.position.x,
+      cz: c.position.z,
+      hx: c.scale.x / 2,
+      hz: c.scale.z / 2,
+      top: top,
+      capacity: Math.max(4, Math.min(30, Math.round(top * 5))),
+      contained: [],
+      glassified: false,
+      popped: false,
+    });
+  });
+
   //----------------------------------------------------------------- Particular
   
 
@@ -389,6 +397,7 @@ function init() {
   pelement.receiveShadow = true;
   // pelement.material.emissive.setHex(0xFFFFFF + Math.random() * 100000);
   pelement.name = "ground";
+  groundMesh = pelement;
 
   city.add(pelement);
 };
@@ -422,14 +431,14 @@ function onMouseMove(event) {
 
 };
 function onDocumentTouchStart( event ) {
-  if ( event.touches.length == 1 ) {
+  if ( event.touches.length === 1 ) {
     event.preventDefault();
     mouse.x = event.touches[ 0 ].pageX -  window.innerWidth / 2;
     mouse.y = event.touches[ 0 ].pageY - window.innerHeight / 2;
   };
 };
 function onDocumentTouchMove( event ) {
-  if ( event.touches.length == 1 ) {
+  if ( event.touches.length === 1 ) {
     event.preventDefault();
     mouse.x = event.touches[ 0 ].pageX -  window.innerWidth / 2;
     mouse.y = event.touches[ 0 ].pageY - window.innerHeight / 2;
@@ -474,14 +483,11 @@ var createLights = function() {
   var lightFront = new THREE.SpotLight(0xFFFFFF, 20, 10);
   var lightBack = new THREE.PointLight(0xFFFFFF, 0.5);
 
-  var spotLightHelper = new THREE.SpotLightHelper( lightFront );
-  //scene.add( spotLightHelper );
-
   lightFront.rotation.x = 45 * Math.PI / 180;
   lightFront.rotation.z = -45 * Math.PI / 180;
   lightFront.position.set(5, 5, 5);
   lightFront.castShadow = true;
-  lightFront.shadow.mapSize.width = 6000;
+  lightFront.shadow.mapSize.width = 2048;
   lightFront.shadow.mapSize.height = lightFront.shadow.mapSize.width;
   lightFront.penumbra = 0.1;
   lightBack.position.set(0,6,0);
@@ -501,10 +507,6 @@ var createGridHelper = function() {
   city.add( gridHelper );
 }
 
-//----------------------------------------------------------------- CAR world
-var generateCar = function() {
-  
-}
 //----------------------------------------------------------------- LINES world
 
 var createCars = function(cScale = 2, cPos = 20, cColor = currentColors.lineColor) {
@@ -540,17 +542,10 @@ var generateLines = function() {
   };
 };
 
-//----------------------------------------------------------------- CAMERA position
-
-var cameraSet = function() {
-  createCars(0.1, 20, 0xFFFFFF);
-  //TweenMax.to(camera.position, 1, {y:1+Math.random()*4, ease:Expo.easeInOut})
-};
-
 //----------------------------------------------------------------- SPHERES
 
 var createSpheres = function() {
-  cubeRenderTarget = new THREE.WebGLCubeRenderTarget(500);
+  cubeRenderTarget = new THREE.WebGLCubeRenderTarget(isLowEndDevice ? 128 : 256);
   cubeRenderTarget.texture.type = THREE.HalfFloatType;
   cubeCamera = new THREE.CubeCamera(0.5, 100, cubeRenderTarget);
   // look in the same direction as the main camera
@@ -568,7 +563,6 @@ var createSpheres = function() {
   sphere1 = new THREE.Mesh(new THREE.IcosahedronGeometry(0.1, 8), sphereMaterial);
   sphere1.position.set(0, 0, -5);
   sphere1.layers.enable(BLOOM_SCENE);
-  console.log('sphere1:', sphere1)
   camera.add(sphere1);
   sphere1.add(cubeCamera);
 }
@@ -603,6 +597,8 @@ function setupListeners() {
   window.addEventListener('touchstart', onDocumentTouchStart, false );
   window.addEventListener('touchmove', onDocumentTouchMove, false );
   window.addEventListener( 'wheel', onMouseWheel, false );
+  window.addEventListener('click', onPointerClick, false);
+  window.addEventListener('touchend', onPointerClick, false);
 }
 
 //----------------------------------------------------------------- ANIMATE
@@ -622,45 +618,34 @@ function onMouseWheel(e) {
 }
 
 function moveSphere() {
-  const currentTime = clock.getElapsedTime() * 2.5;
+  const currentTime = elapsedTime * 2.5;
   sphere1.position.y = Math.sin(currentTime) * 0.005;
 }
 
 var animate = function() {
-  stats.begin();
-  
-  city.rotation.y -= ((mouse.x * 2) - camera.rotation.y) * uSpeed;
-  city.rotation.x -= (-(mouse.y * 2) - camera.rotation.x) * uSpeed;
-  if (city.rotation.x < -0.05) city.rotation.x = -0.05;
-  else if (city.rotation.x > 1) city.rotation.x = 1;
-  var cityRotation = Math.sin(Date.now() / 5000) * 13;
-  //city.rotation.x = cityRotation * Math.PI / 180;
-  
-  //console.log(city.rotation.x);
-  //camera.position.y -= (-(mouse.y * 20) - camera.rotation.y) * uSpeed;;
-  
-  // rotate the buildings?
-  // for ( let i = 0, l = town.children.length; i < l; i ++ ) {
-  //   var object = town.children[ i ];
-  //   object.scale.y = Math.sin(time*50) * object.rotationValue;
-  //   object.rotation.y = (Math.sin((time/object.rotationValue) * Math.PI / 180) * 180);
-  //   object.rotation.z = (Math.cos((time/object.rotationValue) * Math.PI / 180) * 180);
-  // }
-  
+  frameCount++;
+  const dt = Math.min(clock.getDelta(), 0.05);
+  elapsedTime += dt;
+
+  // the city no longer rotates with the mouse (the view is a fixed overhead angle);
+  // only the particle cloud drifts gently for life
   smoke.rotation.y += 0.002;
   smoke.rotation.x += 0.002;
 
+  updatePhysics(dt);
   moveSphere();
 
-  camera.lookAt(city.position);
-  cubeCamera.update(renderer, scene);
-  cubeCamera.lookAt(city.position);
+  camera.lookAt(0, 1.5, 0);
+
+  // the reflective orb re-renders the whole scene 6x — throttle it for old machines
+  const cubeInterval = isLowEndDevice ? 4 : 2;
+  if (frameCount % cubeInterval === 0) {
+    cubeCamera.update(renderer, scene);
+  }
 
   scene.traverse(darkenNonBloomed);
-  // camera.traverse(darkenNonBloomed);
   bloomComposer.render();
   scene.traverse(restoreDarkenedNonBloomedMaterial);
-  // camera.traverse(restoreDarkenedNonBloomedMaterial);
 
   // dynamic bloom controls
   bloomPass.strength = bloomSettings.strength;
@@ -674,10 +659,234 @@ var animate = function() {
   }
 
   finalComposer.render();
-  // renderer.render(scene, camera);
-  
-  stats.end();
   requestAnimationFrame(animate);
+}
+
+//----------------------------------------------------------------- BOUNCY BALLS
+
+// click the orb -> open LinkedIn; click anywhere else -> drop a few bouncy balls
+function onPointerClick(event) {
+  const pt = event.changedTouches ? event.changedTouches[0] : event;
+  if (pt.clientX === undefined) return;
+  const ndc = new THREE.Vector2(
+    (pt.clientX / window.innerWidth) * 2 - 1,
+    -(pt.clientY / window.innerHeight) * 2 + 1
+  );
+  raycaster.setFromCamera(ndc, camera);
+
+  // the reflective orb is a child of the camera
+  const orbHit = raycaster.intersectObjects(camera.children, true);
+  if (orbHit.length > 0) {
+    window.open(LINKEDIN_URL, '_blank', 'noopener,noreferrer');
+    return;
+  }
+
+  // otherwise rain balls down onto wherever the click lands on the ground plane
+  if (!groundMesh) return;
+  const hit = raycaster.intersectObject(groundMesh, false);
+  if (hit.length > 0) {
+    spawnBalls(hit[0].point.x, hit[0].point.z, BALLS_PER_CLICK);
+  }
+}
+
+function spawnBalls(x, z, count) {
+  const dropY = 9;
+  for (let i = 0; i < count; i++) {
+    if (balls.length >= MAX_BALLS) {
+      const old = balls.shift();
+      scene.remove(old.mesh);
+      if (old.home) {
+        const idx = old.home.contained.indexOf(old);
+        if (idx >= 0) old.home.contained.splice(idx, 1);
+      }
+    }
+    const color = new THREE.Color().setHSL(Math.random(), 0.85, 0.6);
+    const mat = new THREE.MeshStandardMaterial({
+      color: color,
+      emissive: color,
+      emissiveIntensity: 0.65,
+      roughness: 0.3,
+      metalness: 0.1,
+    });
+    const mesh = new THREE.Mesh(ballGeo, mat);
+    mesh.castShadow = true;
+    const ball = {
+      mesh: mesh,
+      pos: new THREE.Vector3(
+        x + (Math.random() - 0.5) * 0.7,
+        dropY + Math.random() * 1.5,
+        z + (Math.random() - 0.5) * 0.7
+      ),
+      vel: new THREE.Vector3((Math.random() - 0.5) * 1.5, 0, (Math.random() - 0.5) * 1.5),
+      prevY: dropY,
+      home: null,
+    };
+    mesh.position.copy(ball.pos);
+    scene.add(mesh);
+    balls.push(ball);
+  }
+}
+
+function inFootprint(b, B) {
+  return (
+    b.pos.x > B.cx - B.hx - BALL_R &&
+    b.pos.x < B.cx + B.hx + BALL_R &&
+    b.pos.z > B.cz - B.hz - BALL_R &&
+    b.pos.z < B.cz + B.hz + BALL_R
+  );
+}
+
+function glassify(B) {
+  if (B.glassified) return;
+  B.glassified = true;
+  // reveal the balls accumulating inside by turning the building to glass
+  B.mesh.material.transparent = true;
+  B.mesh.material.opacity = 0.32;
+  B.mesh.material.needsUpdate = true;
+}
+
+function enterBuilding(b, B) {
+  b.home = B;
+  B.contained.push(b);
+  glassify(B);
+  if (b.pos.y > B.top - BALL_R) b.pos.y = B.top - BALL_R;
+}
+
+function confineToBuilding(b, B) {
+  const minX = B.cx - B.hx + BALL_R, maxX = B.cx + B.hx - BALL_R;
+  const minZ = B.cz - B.hz + BALL_R, maxZ = B.cz + B.hz - BALL_R;
+  if (b.pos.x < minX) { b.pos.x = minX; b.vel.x = Math.abs(b.vel.x) * RESTITUTION; }
+  else if (b.pos.x > maxX) { b.pos.x = maxX; b.vel.x = -Math.abs(b.vel.x) * RESTITUTION; }
+  if (b.pos.z < minZ) { b.pos.z = minZ; b.vel.z = Math.abs(b.vel.z) * RESTITUTION; }
+  else if (b.pos.z > maxZ) { b.pos.z = maxZ; b.vel.z = -Math.abs(b.vel.z) * RESTITUTION; }
+}
+
+function pushOutOfBox(b, B) {
+  const overlapX = (B.hx + BALL_R) - Math.abs(b.pos.x - B.cx);
+  const overlapZ = (B.hz + BALL_R) - Math.abs(b.pos.z - B.cz);
+  if (overlapX < overlapZ) {
+    const dir = b.pos.x > B.cx ? 1 : -1;
+    b.pos.x = B.cx + dir * (B.hx + BALL_R);
+    b.vel.x = dir * Math.abs(b.vel.x) * RESTITUTION;
+  } else {
+    const dir = b.pos.z > B.cz ? 1 : -1;
+    b.pos.z = B.cz + dir * (B.hz + BALL_R);
+    b.vel.z = dir * Math.abs(b.vel.z) * RESTITUTION;
+  }
+}
+
+function collideFree(b) {
+  const bottom = b.pos.y - BALL_R;
+  const prevBottom = b.prevY - BALL_R;
+
+  // 1) landing on / smashing through a roof — pick the highest roof crossed this step
+  let roofB = null;
+  for (let i = 0; i < buildings.length; i++) {
+    const B = buildings[i];
+    if (B.popped || !inFootprint(b, B)) continue;
+    if (b.vel.y <= 0 && prevBottom >= B.top - 0.02 && bottom <= B.top) {
+      if (!roofB || B.top > roofB.top) roofB = B;
+    }
+  }
+  if (roofB) {
+    if (-b.vel.y > SMASH_SPEED) {
+      enterBuilding(b, roofB);
+    } else {
+      b.pos.y = roofB.top + BALL_R;
+      b.vel.y = -b.vel.y * RESTITUTION;
+      b.vel.x *= 0.92;
+      b.vel.z *= 0.92;
+    }
+    return;
+  }
+
+  // 2) bouncing off the side of a building it can't be on top of
+  let sideB = null;
+  for (let i = 0; i < buildings.length; i++) {
+    const B = buildings[i];
+    if (B.popped || !inFootprint(b, B)) continue;
+    if (bottom < B.top && b.pos.y + BALL_R > 0) {
+      if (!sideB || B.top > sideB.top) sideB = B;
+    }
+  }
+  if (sideB) pushOutOfBox(b, sideB);
+}
+
+function resolveBallBall(list) {
+  const min = BALL_R * 2;
+  for (let i = 0; i < list.length; i++) {
+    for (let j = i + 1; j < list.length; j++) {
+      const a = list[i], c = list[j];
+      const dx = c.pos.x - a.pos.x, dy = c.pos.y - a.pos.y, dz = c.pos.z - a.pos.z;
+      const d2 = dx * dx + dy * dy + dz * dz;
+      if (d2 < min * min && d2 > 1e-6) {
+        const d = Math.sqrt(d2);
+        const nx = dx / d, ny = dy / d, nz = dz / d;
+        const pen = (min - d) * 0.5;
+        a.pos.x -= nx * pen; a.pos.y -= ny * pen; a.pos.z -= nz * pen;
+        c.pos.x += nx * pen; c.pos.y += ny * pen; c.pos.z += nz * pen;
+        const vn = (c.vel.x - a.vel.x) * nx + (c.vel.y - a.vel.y) * ny + (c.vel.z - a.vel.z) * nz;
+        if (vn < 0) {
+          const imp = -(1 + RESTITUTION) * vn * 0.5;
+          a.vel.x -= imp * nx; a.vel.y -= imp * ny; a.vel.z -= imp * nz;
+          c.vel.x += imp * nx; c.vel.y += imp * ny; c.vel.z += imp * nz;
+        }
+      }
+    }
+  }
+}
+
+function popBuilding(B) {
+  B.popped = true;
+  town.remove(B.mesh);
+  // the building bursts — fling its contents out to scatter and roll away
+  for (let k = 0; k < B.contained.length; k++) {
+    const b = B.contained[k];
+    b.home = null;
+    const ang = Math.random() * Math.PI * 2;
+    const sp = 2.5 + Math.random() * 4;
+    b.vel.set(Math.cos(ang) * sp, 3 + Math.random() * 4.5, Math.sin(ang) * sp);
+    b.pos.y = Math.max(b.pos.y, BALL_R + 0.05);
+  }
+  B.contained = [];
+}
+
+function updatePhysics(dt) {
+  if (dt <= 0) return;
+  for (let i = 0; i < balls.length; i++) {
+    const b = balls[i];
+    b.prevY = b.pos.y;
+    b.vel.y -= GRAVITY * dt;
+    b.pos.x += b.vel.x * dt;
+    b.pos.y += b.vel.y * dt;
+    b.pos.z += b.vel.z * dt;
+
+    if (b.home && !b.home.popped) {
+      confineToBuilding(b, b.home);
+    } else {
+      b.home = null;
+      collideFree(b);
+    }
+
+    // ground plane
+    if (b.pos.y - BALL_R < 0) {
+      b.pos.y = BALL_R;
+      if (b.vel.y < 0) b.vel.y = -b.vel.y * RESTITUTION;
+      b.vel.x *= GROUND_FRICTION;
+      b.vel.z *= GROUND_FRICTION;
+      if (Math.abs(b.vel.y) < 0.35) b.vel.y = 0;
+    }
+
+    b.mesh.position.copy(b.pos);
+  }
+
+  // settle stacks inside each building, and burst the full ones
+  for (let i = 0; i < buildings.length; i++) {
+    const B = buildings[i];
+    if (B.popped) continue;
+    if (B.contained.length > 1) resolveBallBall(B.contained);
+    if (B.contained.length >= B.capacity) popBuilding(B);
+  }
 }
 
 //----------------------------------------------------------------- START functions
