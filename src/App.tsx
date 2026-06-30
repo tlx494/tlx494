@@ -39,14 +39,13 @@ function App() {
       {/* identity */}
       <div className="overlay">
         <div className="hero">
-          <p className="eyebrow rise d1">con brio</p>
           <div className="name-wrap rise d2">
             <h1 className="name">DANIEL O'DEA</h1>
           </div>
           <div className="rule rise" />
           <p className="creds rise d4">
             software engineer <Sep /> <MuseLink>pianist</MuseLink> <Sep />{" "}
-            <MuseLink>composer</MuseLink> <Sep /> artist <Sep /> writer
+            <MuseLink>composer</MuseLink> <Sep /> artist
           </p>
         </div>
 

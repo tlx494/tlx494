@@ -26,7 +26,10 @@ const SMASH_SPEED = 2.2; // downward speed needed to crash through a rooftop
 const MAX_BALLS = 220;
 const BALLS_PER_CLICK = 6;
 // a curated neon palette (harmonises with the scene instead of random rainbow)
-const BALL_COLORS = ['#ff5d8f', '#ffd36e', '#7df9ff', '#b07cff', '#ff8a5c', '#9affc4'];
+const BALL_COLORS = ['#ff2e7e', '#ffd000', '#19f0ff', '#9b5cff', '#ff7a18', '#3dffa6', '#ff4fd8', '#4d7bff'];
+
+// the LinkedIn orb sits low-centre of the view (child of the camera)
+const ORB_Y = -0.95;
 
 const colors = [
   {
@@ -279,8 +282,8 @@ function setupScene(cityRef) {
   });
   var geometry = new THREE.PlaneGeometry(0.2, 0.2);
   var mesh = new THREE.Mesh(geometry, material);
-  mesh.position.z = 0.1;
-  mesh.scale.set(0.25, 0.25, 1);
+  mesh.position.z = 0.16;
+  mesh.scale.set(0.4, 0.4, 1);
   sphere1.add(mesh);
 
 }
@@ -564,8 +567,8 @@ var createSpheres = function() {
     metalness: 1
   });
   
-  sphere1 = new THREE.Mesh(new THREE.IcosahedronGeometry(0.1, 8), sphereMaterial);
-  sphere1.position.set(0, 0, -5);
+  sphere1 = new THREE.Mesh(new THREE.IcosahedronGeometry(0.16, 8), sphereMaterial);
+  sphere1.position.set(0, ORB_Y, -5);
   sphere1.layers.enable(BLOOM_SCENE);
   camera.add(sphere1);
   sphere1.add(cubeCamera);
@@ -623,7 +626,7 @@ function onMouseWheel(e) {
 
 function moveSphere() {
   const currentTime = elapsedTime * 2.5;
-  sphere1.position.y = Math.sin(currentTime) * 0.005;
+  sphere1.position.y = ORB_Y + Math.sin(currentTime) * 0.005;
 }
 
 var animate = function() {
@@ -706,12 +709,18 @@ function spawnBalls(x, z, count) {
       }
     }
     const color = new THREE.Color(BALL_COLORS[Math.floor(Math.random() * BALL_COLORS.length)]);
+    // metallic neon: a fully-metal surface reflects the city's cube map (so it won't blow
+    // out to white under the bright ambient light), tinted by the ball's colour, with a
+    // touch of self-emission so the hue always reads. Reuses the orb's existing env map —
+    // cheap, no per-ball glow/bloom pass.
     const mat = new THREE.MeshStandardMaterial({
       color: color,
       emissive: color,
-      emissiveIntensity: 0.65,
-      roughness: 0.3,
-      metalness: 0.1,
+      emissiveIntensity: 0.4,
+      roughness: 0.18,
+      metalness: 1,
+      envMap: cubeRenderTarget ? cubeRenderTarget.texture : null,
+      envMapIntensity: 1.6,
     });
     const mesh = new THREE.Mesh(ballGeo, mat);
     mesh.castShadow = true;

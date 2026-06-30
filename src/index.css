@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,600&family=Montserrat:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,600&family=Montserrat:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @font-face {
     font-family: 'Dune';
     src: local('Dune'), url(./assets/dune_rise.otf) format('opentype');
