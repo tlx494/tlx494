@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reclaim Disk Space — find what is eating your Mac's storage</title>
+<meta name="description" content="A macOS disk space analyser. Two visualisations over one scan, plus a curated list of things that are actually safe to remove.">
+<style>
+  :root { color-scheme: light dark; --ink:#12151a; --dim:#5a6472; --bg:#f4f5f8; --card:#fff; --line:#dce1e9; --accent:#0e9e96; }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink:#edf0f4; --dim:#98a1ae; --bg:#0e1013; --card:#16191e; --line:#2a3038; --accent:#3fd0c9; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:48px 20px; background:var(--bg); color:var(--ink);
+         font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  main { max-width:760px; margin:0 auto; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:40px; }
+  h1 { font-size:34px; margin:0 0 6px; letter-spacing:-0.02em; }
+  h2 { font-size:19px; margin:34px 0 10px; }
+  .lede { color:var(--dim); margin-top:0; font-size:18px; }
+  a { color:var(--accent); }
+  ul { padding-left:20px; }
+  li { margin:6px 0; }
+  .buy { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:28px 0 8px; }
+  @media (max-width:620px) { .buy { grid-template-columns:1fr; } }
+  .option { border:1px solid var(--line); border-radius:14px; padding:22px; background:var(--bg); }
+  .option h3 { margin:0 0 4px; font-size:17px; }
+  .option .price { color:var(--dim); font-size:14px; margin:0 0 14px; }
+  .btn { display:inline-block; background:var(--accent); color:#fff; text-decoration:none;
+         padding:10px 18px; border-radius:9px; font-weight:600; font-size:15px; }
+  .btn.secondary { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  .note { color:var(--dim); font-size:13px; margin-top:12px; }
+  .btn.disabled { background:var(--line); color:var(--dim); cursor:default; border-color:var(--line); }
+  .status { background:var(--bg); border:1px solid var(--line); border-radius:10px;
+            padding:12px 14px; font-size:14px; color:var(--dim); margin:0; }
+  footer { max-width:760px; margin:24px auto 0; color:var(--dim); font-size:13px; }
+  footer a { color:var(--dim); }
+</style>
+</head>
+<body>
+<main>
+<div class="card">
+  <h1>Reclaim Disk Space</h1>
+  <p class="lede">Find what is actually eating your Mac's storage, and get it back.</p>
+
+  <p>Point it at a disk. It measures every folder the way <code>du</code> does — what files
+     really occupy, not what Finder rounds them to — and draws the result two ways at once:
+     a sunburst you read by shape, and a treemap you read by area. Alongside it is a list of
+     things that are genuinely safe to remove, each one explaining what it costs you.</p>
+
+  <p>Nothing is ever erased. Everything goes to the Trash, so anything can be put back.</p>
+
+  <h2>Get it</h2>
+  <p class="status">Reclaim 1.0 is in review. Both versions go live here the day it
+     is approved — this page will stop saying this when they do.</p>
+  <div class="buy">
+    <div class="option">
+      <h3>Mac App Store</h3>
+      <p class="price">Free, with a one-time A$14.99 upgrade</p>
+      <a class="btn disabled" aria-disabled="true">Coming soon</a>
+      <p class="note">Updates through the App Store. Sandboxed, so macOS keeps Mail, Safari
+         data and Time Machine snapshots hidden from it.</p>
+    </div>
+    <div class="option">
+      <h3>Direct download</h3>
+      <p class="price">A$14.99 one-time, no subscription</p>
+      <a class="btn secondary disabled" aria-disabled="true">Coming soon</a>
+      <p class="note">Can be granted Full Disk Access, so it measures Mail, Safari and Time
+         Machine local snapshots too. Updates itself in place.</p>
+    </div>
+  </div>
+
+  <h2>Which one?</h2>
+  <p>They are the same app, built from the same source. The difference is the sandbox.</p>
+  <ul>
+    <li><b>A sandboxed app cannot be given Full Disk Access.</b> The sandbox is checked
+        before that setting, so turning it on in System Settings does nothing — which is
+        why the App Store version reports those folders as skipped rather than pretending
+        it measured them.</li>
+    <li>The direct download has no sandbox, so one grant makes all of it measurable, and
+        external drives readable with no per-drive prompt.</li>
+    <li>Everything else — the maps, the reclaim rules, the Trash-only removal — is
+        identical.</li>
+  </ul>
+
+  <h2>Your licence</h2>
+  <p>A direct-download licence is a signed key, checked on your own Mac. It is never sent
+     anywhere, it works offline, and it keeps working on every Mac you own. There is no
+     account, no activation server, and nothing to lose access to if this site ever goes
+     away.</p>
+
+  <h2>Requirements</h2>
+  <p>macOS 14 Sonoma or later. Apple silicon or Intel.</p>
+</div>
+<footer>
+  <a href="/reclaim-privacy">Privacy</a> ·
+  <a href="/reclaim-support">Support</a> ·
+  Made by Daniel O'Dea
+</footer>
+</main>
+</body>
+</html>

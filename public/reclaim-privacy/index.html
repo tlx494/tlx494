@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reclaim Disk Space — Privacy Policy</title>
+<style>
+  :root { color-scheme: light dark; --ink:#12151a; --dim:#5a6472; --bg:#f4f5f8; --card:#fff; --line:#dce1e9; --accent:#0e9e96; }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink:#edf0f4; --dim:#98a1ae; --bg:#0e1013; --card:#16191e; --line:#2a3038; --accent:#3fd0c9; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:48px 20px; background:var(--bg); color:var(--ink);
+         font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  main { max-width:680px; margin:0 auto; background:var(--card); border:1px solid var(--line);
+         border-radius:16px; padding:40px; }
+  h1 { font-size:28px; margin:0 0 4px; letter-spacing:-0.02em; }
+  h2 { font-size:17px; margin:32px 0 8px; }
+  p, li { color:var(--ink); }
+  .lede { color:var(--dim); margin-top:0; }
+  .stamp { color:var(--dim); font-size:13px; }
+  strong { color:var(--accent); }
+  a { color:var(--accent); }
+  ul { padding-left:20px; }
+  footer { max-width:680px; margin:24px auto 0; color:var(--dim); font-size:13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Privacy Policy</h1>
+  <p class="lede">Reclaim Disk Space for macOS</p>
+  <p class="stamp">Last updated 16 September 2026</p>
+
+  <h2>The short version</h2>
+  <p><strong>Reclaim collects nothing.</strong> It has no analytics, no crash reporting, no
+     accounts and no server. Nothing about your files — not their names, not their sizes,
+     not their paths, not a count of them — ever leaves your Mac.</p>
+
+  <h2>What Reclaim reads</h2>
+  <p>Reclaim reads the names, sizes and modification dates of files in folders you
+     explicitly give it access to, in order to show you what is using your space. macOS
+     will not let it read anything you have not handed over: you choose a disk or folder
+     through the standard Open panel, or by dragging it onto the window.</p>
+  <p>Reclaim never reads the <em>contents</em> of your files. It only ever asks the
+     filesystem how much room each one takes up.</p>
+
+  <h2>What Reclaim stores</h2>
+  <ul>
+    <li><strong>Access grants.</strong> When you give Reclaim a folder, macOS issues a
+        bookmark so you do not have to grant it again. These are stored in the app's own
+        container on your Mac.</li>
+    <li><strong>Scan records.</strong> So Reclaim can tell you what grew since last time,
+        it keeps a small local record of folder paths and sizes from your previous scan.
+        This stays in the app's container and is deleted when you delete the app.</li>
+    <li><strong>Preferences.</strong> Your chosen view and colour settings.</li>
+  </ul>
+  <p>All of this is on your own machine. None of it is transmitted anywhere.</p>
+
+  <h2>Network access</h2>
+  <p>Reclaim connects to the network for exactly one purpose, and which one depends on
+     where you got it.</p>
+  <ul>
+    <li><strong>From the Mac App Store:</strong> to talk to Apple's App Store, to process
+        and restore the one-time Reclaim Pro purchase. That transaction is handled entirely
+        by Apple. Reclaim never sees your payment details, and Apple's own privacy policy
+        governs it.</li>
+    <li><strong>Downloaded directly:</strong> to check for a new version. Your licence key
+        is checked <em>on your Mac</em>, by verifying a signature — it is never sent
+        anywhere, and Reclaim works offline forever once it is entered.</li>
+  </ul>
+  <p>There is no analytics, no crash reporter and no server of ours in either build.</p>
+
+  <h2>Deleting files</h2>
+  <p>Reclaim only ever moves items to the Trash, and only ones you have explicitly selected
+     and confirmed. It never deletes anything permanently, never removes anything
+     automatically, and refuses outright to touch system files.</p>
+
+  <h2>Children</h2>
+  <p>Reclaim is a utility with no accounts, no content and no communication features, and
+     collects no data from anyone, including children under 13.</p>
+
+  <h2>Changes</h2>
+  <p>If this policy ever changes, the updated version will be posted here with a new date.
+     Since the app collects nothing, any change is likely to be a clarification.</p>
+
+  <h2>Contact</h2>
+  <p>Questions: <a href="mailto:keyboardappdev@gmail.com">keyboardappdev@gmail.com</a></p>
+</main>
+<footer>Reclaim Disk Space is made by Daniel O'Dea.</footer>
+</body>
+</html>
