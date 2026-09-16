@@ -6,6 +6,12 @@
 <title>Steady — metronome &amp; tuner</title>
 <meta name="description" content="A metronome and tuner for musicians who practise. Polyrhythms, odd meters, sequences that change tempo mid-piece, and a record of what you actually played.">
 <meta name="theme-color" content="#0F1115">
+<!-- The tempo ruler down the right edge is this page's scrollbar, and it can
+     only report the scroll position if the script at the end of the body runs.
+     This marks the document so the CSS hides the native scrollbar in that case
+     alone: with JS off the page keeps its own scrollbar and the ruler simply
+     sits there. -->
+<script>document.documentElement.classList.add('js');</script>
 <style>
   /* ------------------------------------------------------------------
      Steady's own identity, not the site's — lifted from lib/theme.dart:
@@ -36,6 +42,21 @@
     font-variant-numeric:tabular-nums; -webkit-font-smoothing:antialiased;
   }
   .wrap { max-width:1080px; margin:0 auto; padding:0 24px; }
+  /* The ruler stands in for the scrollbar, so the native one goes away — but
+     only at the widths where the ruler is actually drawn, and only once the
+     script driving it has run. Note what is deliberately absent: overflow
+     :hidden. The page still scrolls by wheel, trackpad, touch, keyboard and
+     find-in-page; the ruler reports that scrolling and can drive it, but it is
+     never the only way to move. */
+  @media (min-width:861px) {
+    html.js, html.js body { scrollbar-width:none; -ms-overflow-style:none; }
+    html.js::-webkit-scrollbar, html.js body::-webkit-scrollbar { display:none; }
+  }
+  /* The ruler used to live inside the hero, so it only ever overlapped empty
+     space. Now that it spans the viewport, the centred column's last few pixels
+     would run under it between the width where it appears and the width where
+     the column clears it unaided (~1100px). Push the column clear in that band. */
+  @media (min-width:861px) and (max-width:1099px) { .wrap { padding-right:44px; } }
   .prose { max-width:60ch; }
   a { color:var(--accent); text-underline-offset:3px; }
   h1,h2 { letter-spacing:-.03em; font-weight:700; margin:0; }
@@ -62,17 +83,28 @@
 
   /* The vertical tempo ruler, rebuilt from lib/widgets/vertical_tempo_slider.dart:
      a tick per BPM in three weights hugging the right edge, dissolving into the
-     canvas at the top, the bottom and leftward, with the indicator fixed at the
-     centre. It is the one control the whole app is built around. */
+     canvas at the top, the bottom and leftward. It is the one control the whole
+     app is built around, so on this page it is the scrollbar: the ticks are the
+     track, and the accent indicator travels from the top of the ruler to the
+     bottom as the reader travels from the top of the page to the bottom. Fixed,
+     not absolute, so it spans the viewport rather than only the hero. */
   .ruler {
-    position:absolute; right:0; top:0; bottom:0; width:92px; pointer-events:none;
+    position:fixed; right:0; top:0; bottom:0; width:92px; z-index:5;
+    pointer-events:none;              /* the 34px .track re-enables its own */
+  }
+  /* The ticks: the scrollbar's track, and the only part that is masked. The
+     indicator must stay fully opaque at both ends of its travel — which is
+     exactly where this fade reaches zero — so it is a sibling of the ticks
+     rather than a child of them. */
+  .ruler .ticks {
+    position:absolute; inset:0;
     background-repeat:repeat-y;
     background-image:
       repeating-linear-gradient(to bottom, transparent 0 59.2px, rgba(var(--tick),1) 59.2px 60.8px, transparent 60.8px 120px),
       repeating-linear-gradient(to bottom, transparent 0 29.35px, rgba(var(--tick),.6) 29.35px 30.65px, transparent 30.65px 60px),
       repeating-linear-gradient(to bottom, transparent 0 5.5px, rgba(var(--tick),.32) 5.5px 6.5px, transparent 6.5px 12px);
     background-size:26px 120px, 17px 60px, 9px 12px;
-    background-position:right 50%, right 50%, right 50%;
+    background-position:right top, right top, right top;
     -webkit-mask-image:
       linear-gradient(to bottom, transparent 0, #000 12%, #000 88%, transparent 100%),
       linear-gradient(to right, transparent 0, #000 40%);
@@ -81,13 +113,33 @@
       linear-gradient(to right, transparent 0, #000 40%);
     -webkit-mask-composite:source-in; mask-composite:intersect;
   }
-  .ruler i, .ruler b {
-    position:absolute; right:0; top:50%; display:block;
+  /* The grab area is only the right 34px, where the marks actually are. The
+     strip is 92px wide so the ticks can dissolve leftward; making all of that
+     clickable would swallow presses over the page's right-hand margin. */
+  .ruler .track {
+    position:absolute; right:0; top:0; bottom:0; width:34px;
+    pointer-events:auto; cursor:grab;
+    -webkit-user-select:none; user-select:none;
+  }
+  .ruler .track:active { cursor:grabbing; }
+  .ruler .track:focus-visible { outline:2px solid var(--accent); outline-offset:-3px; border-radius:8px; }
+  /* The indicator: the app's accent bar plus knob, hugging the tick side. Its
+     translateY is the scroll position, written by the script; the 10px here is
+     the script's PAD, so with JS off it rests at the top of the travel exactly
+     where a scroll position of zero belongs. */
+  .ruler .knob { position:absolute; left:0; right:0; top:0; transform:translateY(10px); will-change:transform; }
+  .ruler .knob i, .ruler .knob b {
+    position:absolute; right:0; top:0; display:block; touch-action:none;
     background:linear-gradient(to right,var(--accent),var(--accent2));
   }
-  .ruler i { width:30px; height:3px; border-radius:2px; margin-top:-1.5px; }
-  .ruler b { width:14px; height:14px; border-radius:50%; margin-top:-7px;
-             background:linear-gradient(135deg,var(--accent),var(--accent2)); }
+  .ruler .knob i { width:30px; height:3px; border-radius:2px; margin-top:-1.5px; }
+  .ruler .knob b { width:14px; height:14px; border-radius:50%; margin-top:-7px;
+             background:linear-gradient(135deg,var(--accent),var(--accent2));
+             box-shadow:0 0 0 2px var(--bg); transition:transform .12s ease; }
+  .ruler .track:hover .knob b, .ruler .track:focus-visible .knob b { transform:scale(1.15); }
+  /* On phone widths the column is the full width of the screen, so a ruler at
+     the right edge could only sit on top of the text. It goes away, and the
+     native scrollbar above stays, exactly as before. */
   @media (max-width:860px) { .ruler { display:none; } }
 
   /* The main screen, standing in the hero the way it stands on the stand. */
@@ -189,10 +241,18 @@
   @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
 </style>
 </head>
-<body>
+<body id="page">
+
+<!-- Outside the hero now, because it reports the whole page's position rather
+     than decorating one section. The script gives .track its scrollbar role,
+     value and keyboard handling; in plain HTML it is inert decoration, which is
+     what it should be when there is no script to make it mean anything. -->
+<div class="ruler">
+  <div class="ticks" aria-hidden="true"></div>
+  <div class="track" id="rulerTrack"><span class="knob"><i></i><b></b></span></div>
+</div>
 
 <header class="hero">
-  <div class="ruler" aria-hidden="true"><i></i><b></b></div>
   <div class="wrap">
     <p class="modes"><span class="on">Metronome</span><span>Tuner</span></p>
     <h1>Steady</h1>
@@ -317,6 +377,126 @@
     <span class="made">Made by Daniel O'Dea</span>
   </div>
 </footer>
+
+<script>
+/* The ruler as the page's scrollbar.
+
+   Position: progress is scrollY / (scrollHeight - innerHeight) — 0 at the top,
+   exactly 1 at the very bottom. Dividing by scrollHeight alone is the classic
+   bug: the indicator then stops a screenful short of the end.
+
+   It enhances rather than enables. The page scrolls on its own; this reads that
+   scrolling, and adds a way to drive it. Nothing here is load-bearing for the
+   ability to scroll, which is why the scrollbar role, the value and the tab stop
+   are all attached here instead of sitting dead in the markup. */
+(function () {
+  var track = document.getElementById('rulerTrack');
+  var knob  = track && track.querySelector('.knob');
+  if (!track || !knob) return;
+
+  var PAD  = 10;   // matches the CSS resting offset; keeps the knob whole at both ends
+  var LINE = 60;   // one arrow-key step, in px
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  function maxScroll() {
+    return Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+  }
+  function progress() {
+    var max = maxScroll();
+    if (max < 1) return 0;
+    var y = window.scrollY || window.pageYOffset || 0;
+    // A fractional device pixel ratio can leave scrollY a hair under the
+    // maximum; snap so the bottom of the page really is 1, not 0.999.
+    if (y >= max - 0.5) return 1;
+    return Math.min(1, Math.max(0, y / max));
+  }
+
+  var queued = false;
+  function paint() {
+    queued = false;
+    var p = progress();
+    var travel = track.clientHeight - PAD * 2;
+    knob.style.transform = 'translate3d(0,' + (PAD + p * travel).toFixed(2) + 'px,0)';
+    var pct = Math.round(p * 100);
+    track.setAttribute('aria-valuenow', String(pct));
+    track.setAttribute('aria-valuetext', pct + '% down the page');
+  }
+  // One frame per burst: the listeners only raise a flag, and every layout read
+  // and write happens inside the animation frame.
+  function schedule() { if (!queued) { queued = true; requestAnimationFrame(paint); } }
+
+  track.setAttribute('role', 'scrollbar');
+  track.setAttribute('aria-orientation', 'vertical');
+  track.setAttribute('aria-controls', 'page');
+  track.setAttribute('aria-label', 'Page scroll position');
+  track.setAttribute('aria-valuemin', '0');
+  track.setAttribute('aria-valuemax', '100');
+  track.tabIndex = 0;
+
+  function scrollToProgress(p, smooth) {
+    window.scrollTo({
+      top: p * maxScroll(),
+      behavior: (smooth && !reduce.matches) ? 'smooth' : 'auto'
+    });
+  }
+  function progressAt(clientY) {
+    var r = track.getBoundingClientRect();
+    var travel = r.height - PAD * 2;
+    if (travel <= 0) return 0;
+    return Math.min(1, Math.max(0, (clientY - r.top - PAD) / travel));
+  }
+
+  // Pointer events, so mouse, touch and pen are one code path.
+  var dragging = false;
+  track.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    dragging = true;
+    if (track.setPointerCapture) track.setPointerCapture(e.pointerId);
+    // Grabbing the indicator tracks the pointer; pressing the bare ruler is a
+    // jump to that spot, so that one may animate.
+    var onKnob = e.target === knob || knob.contains(e.target);
+    scrollToProgress(progressAt(e.clientY), !onKnob);
+    track.focus({ preventScroll: true });
+    e.preventDefault();          // no text selection mid-drag
+  });
+  track.addEventListener('pointermove', function (e) {
+    if (!dragging) return;
+    scrollToProgress(progressAt(e.clientY), false);
+    e.preventDefault();
+  });
+  function endDrag(e) {
+    if (!dragging) return;
+    dragging = false;
+    if (track.hasPointerCapture && track.hasPointerCapture(e.pointerId)) {
+      track.releasePointerCapture(e.pointerId);
+    }
+  }
+  track.addEventListener('pointerup', endDrag);
+  track.addEventListener('pointercancel', endDrag);
+
+  // The steps a real scrollbar takes, for when the ruler itself has focus. The
+  // page's own keyboard scrolling is untouched either way.
+  track.addEventListener('keydown', function (e) {
+    var max = maxScroll(), y = window.scrollY, page = window.innerHeight * 0.9, to = null;
+    if (e.key === 'ArrowDown')      to = y + LINE;
+    else if (e.key === 'ArrowUp')   to = y - LINE;
+    else if (e.key === 'PageDown')  to = y + page;
+    else if (e.key === 'PageUp')    to = y - page;
+    else if (e.key === 'Home')      to = 0;
+    else if (e.key === 'End')       to = max;
+    if (to === null) return;
+    e.preventDefault();
+    window.scrollTo({
+      top: Math.min(max, Math.max(0, to)),
+      behavior: reduce.matches ? 'auto' : 'smooth'
+    });
+  });
+
+  window.addEventListener('scroll', schedule, { passive: true });
+  window.addEventListener('resize', schedule);
+  paint();
+})();
+</script>
 
 </body>
 </html>
