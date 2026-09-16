@@ -58,7 +58,7 @@ body {
   top: 13%;
   left: 50%;
   transform: translateX(-50%);
-  width: min(92vw, 940px);
+  width: min(calc(100vw - 32px), 940px);
   text-align: center;
 }
 
@@ -150,35 +150,144 @@ body {
   color: rgba(247, 245, 239, 0.9);
   text-shadow: 0 1px 14px rgba(0, 0, 0, 0.55);
 }
+/* on phones the three roles wrap badly (a separator dangling at a line end),
+   so break after "software engineer" deliberately instead */
+.br-narrow { display: none; }
 .creds .sep {
   margin: 0 0.55em;
   color: var(--gold-soft);
   opacity: 0.7;
 }
 
-/* The two shipped apps. Deliberately quieter than .creds — it sits under the
-   identity and must not compete with it, so it is smaller, dimmer and wider
-   tracked, and the label is what stops it reading as more credentials. */
-.apps {
-  margin: 1.35em 0 0;
+/* --- the apps: a row of cards under the identity ---
+   Quieter than .creds (small dim label, glass cards) so it never competes with
+   the name. The row scrolls sideways only when the cards genuinely overflow;
+   when they fit, auto margins on the end cards centre them and nothing hints
+   at scrolling. */
+.gallery {
+  margin: 2.1rem 0 0;
+  pointer-events: none;
+}
+.gallery-label {
+  margin: 0 0 0.85rem;
   font-family: 'Space Grotesk', 'Montserrat', sans-serif;
-  font-weight: 400;
-  font-size: clamp(0.72rem, 1.6vw, 0.9rem);
-  letter-spacing: 0.2em;
+  font-size: 0.64rem;
+  letter-spacing: 0.34em;
   text-transform: uppercase;
-  color: rgba(247, 245, 239, 0.62);
+  color: rgba(247, 245, 239, 0.42);
   text-shadow: 0 1px 12px rgba(0, 0, 0, 0.5);
 }
-.apps .apps-label {
-  margin-right: 0.9em;
-  font-size: 0.82em;
-  letter-spacing: 0.3em;
-  color: rgba(247, 245, 239, 0.34);
+.gallery-row {
+  --fade: 28px;
+  display: flex;
+  gap: 16px;
+  margin: 0;
+  padding: 4px 2px 10px;
+  list-style: none;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 2px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  pointer-events: auto;
+  touch-action: pan-x pan-y;
 }
-.apps .sep {
-  margin: 0 0.55em;
+.gallery-row::-webkit-scrollbar { display: none; }
+.gallery-row:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
+  border-radius: 16px;
+}
+/* edge fades only while there is more in that direction */
+.gallery-row[data-more-right='true'] {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--fade)), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--fade)), transparent);
+}
+.gallery-row[data-more-left='true'] {
+  -webkit-mask-image: linear-gradient(to left, #000 calc(100% - var(--fade)), transparent);
+  mask-image: linear-gradient(to left, #000 calc(100% - var(--fade)), transparent);
+}
+.gallery-row[data-more-left='true'][data-more-right='true'] {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent);
+}
+.gallery-item {
+  flex: 0 0 auto;
+  width: min(272px, 74vw);
+  scroll-snap-align: start;
+}
+.gallery-item:first-child { margin-left: auto; }
+.gallery-item:last-child { margin-right: auto; }
+
+.card {
+  display: block;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid rgba(247, 245, 239, 0.12);
+  background: rgba(10, 6, 24, 0.5);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  color: var(--ink);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1), border-color 0.35s ease;
+}
+.card:hover { transform: translateY(-2px); border-color: rgba(233, 180, 90, 0.45); }
+.card:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.card-thumb {
+  display: block;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #0b0818;
+}
+/* The box is 16:9 and so are the images, but cover keeps it true even if a
+   thumbnail is ever swapped for another shape: crop, never stretch. */
+.card-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.card-text {
+  display: block;
+  padding: 0.7rem 0.9rem 0.85rem;
+}
+.card-name {
+  display: block;
+  font-family: 'Space Grotesk', 'Montserrat', sans-serif;
+  font-weight: 500;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+}
+.card-ext {
+  margin-left: 0.35em;
+  font-size: 0.8em;
   color: var(--gold-soft);
-  opacity: 0.6;
+}
+.card-blurb {
+  display: block;
+  margin-top: 0.2rem;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: rgba(247, 245, 239, 0.62);
+}
+
+@media (prefers-color-scheme: light) {
+  .card {
+    border-color: rgba(27, 17, 64, 0.1);
+    background: rgba(250, 248, 243, 0.82);
+    color: #1b1140;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+  }
+  .card:hover { border-color: rgba(190, 130, 40, 0.6); }
+  .card-ext { color: #b07a22; }
+  .card-blurb { color: rgba(27, 17, 64, 0.62); }
 }
 
 .link {
@@ -278,9 +387,36 @@ body {
   50% { opacity: 1; transform: scale(1.12); }
 }
 
+/* The LinkedIn orb sits in the scene at roughly 79% of the viewport height,
+   so on laptop-height screens the whole stack is scaled to finish above it. */
+@media (max-height: 920px) {
+  .hero { top: 7%; }
+  .name { font-size: min(clamp(2.5rem, 8.6vw, 6.1rem), 10.5vh); }
+  .rule { margin: 1.1rem auto 1rem; }
+  .gallery { margin-top: 1.4rem; }
+  .gallery-item { width: min(248px, 74vw); }
+}
+
 @media (max-width: 560px) {
-  .hero { top: 16%; }
+  .hero { top: 14%; }
+  .gallery { margin-top: 1.6rem; }
+  .br-narrow { display: inline; }
+  .sep-wide { display: none; }
   .cue { letter-spacing: 0.26em; font-size: 0.6rem; }
+}
+
+/* short landscape screens: pull everything up so the cards stay on screen */
+@media (max-height: 620px) {
+  .hero { top: 4%; }
+  .name { font-size: clamp(1.8rem, 9vh, 3.4rem); }
+  .rule { margin: 0.7rem auto 0.6rem; }
+  .creds { font-size: 0.85rem; }
+  .gallery { margin-top: 0.9rem; }
+  .gallery-label { display: none; }
+  .gallery-item { width: min(220px, 40vw); }
+  .card-text { padding: 0.5rem 0.75rem 0.6rem; }
+  .card-name { font-size: 0.85rem; }
+  .card-blurb { font-size: 0.68rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

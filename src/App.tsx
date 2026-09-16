@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import AppGallery from "./AppGallery";
 import CssBaseline from "@mui/material/CssBaseline";
 import StartThreeJS from "./city3d";
 import "./overlay.css";
@@ -12,13 +13,6 @@ const MuseLink = ({ children }: { children: React.ReactNode }) => (
     {children}
   </a>
 );
-
-// Same-origin pages served straight from GitHub Pages, so these are ordinary
-// navigations rather than routes — no router, and nothing to keep in sync.
-const APPS = [
-  { href: "/reclaim", name: "Reclaim Disk Space" },
-  { href: "/steady", name: "Steady" },
-];
 
 function App() {
   const cityRef = useRef<any>(null);
@@ -51,20 +45,12 @@ function App() {
           </div>
           <div className="rule rise" />
           <p className="creds rise d4">
-            software engineer <Sep /> <MuseLink>pianist</MuseLink> <Sep />{" "}
-            <MuseLink>composer</MuseLink> <Sep /> artist
+            software engineer <span className="sep-wide"><Sep /></span>
+            <br className="br-narrow" />{" "}
+            <MuseLink>pianist</MuseLink> <Sep />{" "}
+            <MuseLink>composer</MuseLink>
           </p>
-          <p className="apps rise d5">
-            <span className="apps-label">apps</span>
-            {APPS.map((app, i) => (
-              <React.Fragment key={app.href}>
-                {i > 0 && <Sep />}
-                <a className="link" href={app.href}>
-                  {app.name}
-                </a>
-              </React.Fragment>
-            ))}
-          </p>
+          <AppGallery className="rise d5" />
         </div>
 
         <div className="cue rise d6">
