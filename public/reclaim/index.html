@@ -30,7 +30,13 @@
          padding:10px 18px; border-radius:9px; font-weight:600; font-size:15px; }
   .btn.secondary { background:transparent; color:var(--accent); border:1px solid var(--accent); }
   .note { color:var(--dim); font-size:13px; margin-top:12px; }
-  .btn.disabled { background:var(--line); color:var(--dim); cursor:default; border-color:var(--line); }
+  .shots { margin:30px 0 8px; }
+  .shot { margin:0 0 22px; }
+  .shot img { width:100%; display:block; border-radius:10px; border:1px solid var(--line); background:#0e1013; }
+  .shot figcaption { color:var(--dim); font-size:13px; margin-top:7px; }
+
+  .btn.pending { background:transparent; color:var(--dim); border:1px dashed var(--line);
+                 font-weight:500; cursor:default; }
   .status { background:var(--bg); border:1px solid var(--line); border-radius:10px;
             padding:12px 14px; font-size:14px; color:var(--dim); margin:0; }
   footer { max-width:760px; margin:24px auto 0; color:var(--dim); font-size:13px; }
@@ -50,6 +56,34 @@
 
   <p>Nothing is ever erased. Everything goes to the Trash, so anything can be put back.</p>
 
+
+  <div class="shots">
+    <figure class="shot">
+      <img src="shots/sunburst.webp" alt="Reclaim's sunburst view of a full disk, with a reclaimable list beside it" loading="lazy" width="1600" height="1000">
+      <figcaption>Every folder on the disk, read by shape. The ring is sized by what files actually occupy.</figcaption>
+    </figure>
+      <figure class="shot">
+        <img src="shots/treemap.webp" alt="The same scan drawn as a treemap" loading="lazy" width="1600" height="1000">
+        <figcaption>The same scan as a treemap, read by area.</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="shots/both.webp" alt="Sunburst and treemap side by side, sharing a pointer" loading="lazy" width="1600" height="1000">
+        <figcaption>Or both at once, sharing a pointer.</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="shots/reclaimable.webp" alt="The reclaimable list, grouped by category with sizes" loading="lazy" width="1600" height="1000">
+        <figcaption>What is safe to remove, and what each one costs you.</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="shots/layers.webp" alt="The sunburst drawn twelve rings deep" loading="lazy" width="1600" height="1000">
+        <figcaption>As deep as you want to look — up to twelve rings.</figcaption>
+      </figure>
+    <figure class="shot">
+      <img src="shots/marked.webp" alt="Items marked for removal listed along the bottom of the window" loading="lazy" width="1600" height="1000">
+      <figcaption>Mark things as you find them. Nothing moves until you say so, and everything goes to the Trash.</figcaption>
+    </figure>
+  </div>
+
   <h2>Get it</h2>
   <p class="status">Reclaim 1.0 is in review. Both versions go live here the day it
      is approved — this page will stop saying this when they do.</p>
@@ -57,17 +91,16 @@
     <div class="option">
       <h3>Mac App Store</h3>
       <p class="price">Free, with a one-time A$14.99 upgrade</p>
-      <a class="btn disabled" aria-disabled="true">Coming soon</a>
+      <span class="btn pending">Coming soon</span>
       <p class="note">Updates through the App Store. Sandboxed, so macOS keeps Mail, Safari
          data and Time Machine snapshots hidden from it.</p>
     </div>
     <div class="option">
       <h3>Direct download</h3>
       <p class="price">A$14.99 one-time, no subscription</p>
-      <a class="btn secondary disabled" aria-disabled="true">Coming soon</a>
+      <span class="btn pending">Coming soon</span>
       <p class="note">Can be granted Full Disk Access, so it measures Mail, Safari and Time
          Machine local snapshots too. Updates itself in place.</p>
-    </div>
   </div>
 
   <h2>Which one?</h2>

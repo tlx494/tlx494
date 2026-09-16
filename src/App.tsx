@@ -13,6 +13,13 @@ const MuseLink = ({ children }: { children: React.ReactNode }) => (
   </a>
 );
 
+// Same-origin pages served straight from GitHub Pages, so these are ordinary
+// navigations rather than routes — no router, and nothing to keep in sync.
+const APPS = [
+  { href: "/reclaim", name: "Reclaim Disk Space" },
+  { href: "/steady", name: "Steady" },
+];
+
 function App() {
   const cityRef = useRef<any>(null);
 
@@ -47,9 +54,20 @@ function App() {
             software engineer <Sep /> <MuseLink>pianist</MuseLink> <Sep />{" "}
             <MuseLink>composer</MuseLink> <Sep /> artist
           </p>
+          <p className="apps rise d5">
+            <span className="apps-label">apps</span>
+            {APPS.map((app, i) => (
+              <React.Fragment key={app.href}>
+                {i > 0 && <Sep />}
+                <a className="link" href={app.href}>
+                  {app.name}
+                </a>
+              </React.Fragment>
+            ))}
+          </p>
         </div>
 
-        <div className="cue rise d5">
+        <div className="cue rise d6">
           <span className="dot" />
           click anywhere to play
         </div>
