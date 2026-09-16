@@ -5,100 +5,318 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Steady — metronome &amp; tuner</title>
 <meta name="description" content="A metronome and tuner for musicians who practise. Polyrhythms, odd meters, sequences that change tempo mid-piece, and a record of what you actually played.">
+<meta name="theme-color" content="#0F1115">
 <style>
-  /* Steady's own identity, not the site's: canvas #0F1115, Sunset accent. */
-  :root { color-scheme: dark; --ink:#F2F3F5; --dim:#8A90A0; --bg:#0F1115;
-          --card:#1A1D24; --high:#242832; --line:#2C313B;
-          --accent:#FFC152; --accent2:#FF8A3D; }
-  * { box-sizing: border-box; }
-  body { margin:0; padding:48px 20px; background:var(--bg); color:var(--ink);
-         font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
-  main { max-width:760px; margin:0 auto; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:40px; }
-  h1 { font-size:34px; margin:0 0 6px; letter-spacing:-0.02em; }
-  h2 { font-size:19px; margin:34px 0 10px; }
-  .lede { color:var(--dim); margin-top:0; font-size:18px; }
-  a { color:var(--accent); }
-  ul { padding-left:20px; }
-  li { margin:6px 0; }
-  .btn { display:inline-block; background:linear-gradient(135deg,var(--accent),var(--accent2));
-         color:#181207; text-decoration:none; padding:11px 20px; border-radius:9px;
-         font-weight:650; font-size:15px; }
-  .btn.secondary { background:transparent; color:var(--accent);
-                   border:1px solid var(--line); font-weight:600; }
-  .btn.pending { background:transparent; color:var(--dim); border:1px dashed var(--line);
-                 font-weight:500; cursor:default; }
-  .get { display:flex; gap:12px; flex-wrap:wrap; margin:26px 0 4px; }
-  /* A grid, not a horizontal scroller. The scroller put two of the five images
-     off the right edge with nothing to say they were there — hidden content
-     with no affordance is worse than a taller page. auto-fit gives three across
-     on a desktop card and one or two on a phone, with no breakpoint to pick. */
-  .strip { display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));
-           gap:18px 14px; margin:26px 0 0; }
+  /* ------------------------------------------------------------------
+     Steady's own identity, not the site's — lifted from lib/theme.dart:
+     a calm near-black canvas, two surface steps, and the "Sunset" accent
+     pair used as an accent rather than a flood. The app is dark only, so
+     this page is too, and it paints its own ground rather than borrowing
+     the viewer's.
+     Manrope (SIL Open Font License 1.1) is the app's typeface; the file
+     below is a Latin subset of the same variable font the app bundles.
+     ------------------------------------------------------------------ */
+  @font-face {
+    font-family:'Manrope';
+    src:url('manrope.woff2') format('woff2');
+    font-weight:200 800; font-style:normal; font-display:swap;
+  }
+  :root {
+    color-scheme:dark;
+    --bg:#0F1115; --surface:#1A1D24; --high:#242832; --line:#262B34; --muted:#3A3F4B;
+    --ink:#F2F3F5; --dim:#8A90A0;
+    --accent:#FFC152; --accent2:#FF8A3D; --accentDim:#745B2F; --onAccent:#1A1306;
+    --tick:138,144,160;
+  }
+  * { box-sizing:border-box; }
+  html { -webkit-text-size-adjust:100%; }
+  body {
+    margin:0; background:var(--bg); color:var(--ink);
+    font:15.5px/1.65 'Manrope',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-variant-numeric:tabular-nums; -webkit-font-smoothing:antialiased;
+  }
+  .wrap { max-width:1080px; margin:0 auto; padding:0 24px; }
+  .prose { max-width:60ch; }
+  a { color:var(--accent); text-underline-offset:3px; }
+  h1,h2 { letter-spacing:-.03em; font-weight:700; margin:0; }
+
+  /* --- the app's Metronome / Tuner segmented control ----------------- */
+  .modes {
+    display:inline-flex; gap:4px; padding:4px; margin:0 0 26px;
+    background:var(--surface); border-radius:13px;
+  }
+  .modes span {
+    padding:7px 17px; border-radius:10px; font-size:14px; font-weight:700;
+    color:var(--dim); white-space:nowrap;
+  }
+  .modes span.on {
+    background:linear-gradient(135deg,var(--accent),var(--accent2)); color:var(--onAccent);
+  }
+
+  /* --- hero ---------------------------------------------------------- */
+  .hero { position:relative; overflow:hidden; padding:58px 0 46px; }
+  .hero .wrap { position:relative; z-index:1; }
+  h1 { font-size:clamp(46px,8vw,78px); line-height:1; margin:0 0 16px; font-weight:800; }
+  .lede { font-size:clamp(19px,2.5vw,24px); line-height:1.35; margin:0 0 26px; max-width:26ch; font-weight:500; }
+  .hero p:not(.lede) { color:var(--dim); max-width:56ch; }
+
+  /* The vertical tempo ruler, rebuilt from lib/widgets/vertical_tempo_slider.dart:
+     a tick per BPM in three weights hugging the right edge, dissolving into the
+     canvas at the top, the bottom and leftward, with the indicator fixed at the
+     centre. It is the one control the whole app is built around. */
+  .ruler {
+    position:absolute; right:0; top:0; bottom:0; width:92px; pointer-events:none;
+    background-repeat:repeat-y;
+    background-image:
+      repeating-linear-gradient(to bottom, transparent 0 59.2px, rgba(var(--tick),1) 59.2px 60.8px, transparent 60.8px 120px),
+      repeating-linear-gradient(to bottom, transparent 0 29.35px, rgba(var(--tick),.6) 29.35px 30.65px, transparent 30.65px 60px),
+      repeating-linear-gradient(to bottom, transparent 0 5.5px, rgba(var(--tick),.32) 5.5px 6.5px, transparent 6.5px 12px);
+    background-size:26px 120px, 17px 60px, 9px 12px;
+    background-position:right 50%, right 50%, right 50%;
+    -webkit-mask-image:
+      linear-gradient(to bottom, transparent 0, #000 12%, #000 88%, transparent 100%),
+      linear-gradient(to right, transparent 0, #000 40%);
+    mask-image:
+      linear-gradient(to bottom, transparent 0, #000 12%, #000 88%, transparent 100%),
+      linear-gradient(to right, transparent 0, #000 40%);
+    -webkit-mask-composite:source-in; mask-composite:intersect;
+  }
+  .ruler i, .ruler b {
+    position:absolute; right:0; top:50%; display:block;
+    background:linear-gradient(to right,var(--accent),var(--accent2));
+  }
+  .ruler i { width:30px; height:3px; border-radius:2px; margin-top:-1.5px; }
+  .ruler b { width:14px; height:14px; border-radius:50%; margin-top:-7px;
+             background:linear-gradient(135deg,var(--accent),var(--accent2)); }
+  @media (max-width:860px) { .ruler { display:none; } }
+
+  /* The main screen, standing in the hero the way it stands on the stand. */
+  .hero-shot { position:absolute; right:104px; top:50%; transform:translateY(-50%); width:252px; }
+  .hero-shot .phone {
+    border:1px solid var(--line); border-radius:22px; overflow:hidden; background:#0B0D10;
+    box-shadow:0 3px 8px rgba(0,0,0,.5), 0 30px 70px rgba(0,0,0,.55);
+  }
+  .hero-shot img { display:block; width:100%; height:auto; }
+  /* Below the two-column width it stops floating and simply follows the copy —
+     never hidden, because the main screen is the thing worth seeing. */
+  @media (max-width:1060px) {
+    .hero-shot { position:static; transform:none; width:min(258px,70%); margin:38px 0 0; }
+  }
+
+  /* --- the muted Start button: surface fill, thin accent edge, amber
+         glyph. A bright slab reads as loud, so it is not one. ---------- */
+  .get { display:flex; gap:13px; flex-wrap:wrap; align-items:center; margin:30px 0 0; }
+  .btn {
+    display:inline-flex; align-items:center; gap:11px; text-decoration:none;
+    background:var(--high); border:1px solid var(--accentDim); border-radius:14px;
+    padding:13px 22px; font-size:16px; font-weight:700; color:var(--ink);
+  }
+  .btn svg { width:17px; height:17px; color:var(--accent); flex:none; }
+  .btn:hover { border-color:var(--accent); }
+  .btn.pending {
+    background:transparent; border:1px dashed var(--muted); color:var(--dim);
+    font-weight:500; font-size:15px; cursor:default;
+  }
+  .note { color:var(--dim); font-size:13.5px; margin:16px 0 0; }
+
+  /* --- sections ------------------------------------------------------ */
+  section { padding:60px 0 0; }
+  h2 { font-size:25px; line-height:1.24; margin:0 0 10px; }
+  .kicker {
+    font-size:11.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--accent); margin:0 0 9px;
+  }
+  section > .wrap > p { color:var(--dim); margin:0 0 26px; max-width:60ch; }
+
+  /* --- screenshots ---------------------------------------------------
+     A grid, not a horizontal scroller. The scroller put two of the five
+     images off the right edge with nothing to say they were there —
+     hidden content with no affordance is worse than a taller page. Every
+     shot is on screen at every width; only the column count changes. */
+  .strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:22px 16px; }
+  @media (min-width:860px) { .strip { grid-template-columns:repeat(4,1fr); } }
   .strip figure { margin:0; }
-  .strip img { width:100%; display:block; border-radius:12px; border:1px solid var(--line); }
-  .strip figcaption { color:var(--dim); font-size:13px; margin-top:8px; }
-  .note { color:var(--dim); font-size:13px; }
-  footer { max-width:760px; margin:24px auto 0; color:var(--dim); font-size:13px; }
-  footer a { color:var(--dim); }
+  .strip .phone {
+    border:1px solid var(--line); border-radius:18px; overflow:hidden; background:#0B0D10;
+    box-shadow:0 2px 4px rgba(0,0,0,.35), 0 18px 44px rgba(0,0,0,.45);
+    /* fullscreen.webp is a genuine 720x1600 where the rest are 720x1558, so
+       the frames are given one ratio and the odd one out is letterboxed into
+       it against a matching ground rather than cropped or squashed. */
+    aspect-ratio:720/1558;
+  }
+  /* THE FIX: the <img> keeps its intrinsic width/height attributes so the
+     box is reserved before it loads. `width:100%` alone leaves the HTML
+     height attribute in force as a presentational hint — which is what
+     stretched every shot vertically. height:auto cancels it. */
+  .strip img { display:block; width:100%; height:100%; object-fit:contain; }
+  .strip figcaption { color:var(--dim); font-size:13px; line-height:1.45; margin-top:10px; }
+
+  /* --- the app's bottom control strip, as a feature row -------------- */
+  .tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(168px,1fr)); gap:12px; }
+  .tile {
+    background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    padding:16px 15px 15px;
+  }
+  .tile .glyph {
+    height:26px; display:flex; align-items:center; color:var(--accent);
+    font-size:15px; font-weight:800; line-height:1;
+  }
+  .tile .glyph svg { width:21px; height:21px; }
+  .tile .frac { display:inline-flex; flex-direction:column; align-items:center; line-height:1.04; font-size:13px; }
+  .tile .frac span:first-child { border-bottom:1.4px solid currentColor; padding-bottom:1px; }
+  .tile h3 { margin:11px 0 3px; font-size:14.5px; font-weight:700; }
+  .tile p { margin:0; font-size:12.5px; line-height:1.5; color:var(--dim); }
+
+  .card {
+    background:var(--surface); border:1px solid var(--line); border-radius:18px;
+    padding:26px 28px; max-width:70ch;
+  }
+  .card h2 { font-size:20px; }
+  .card p { color:var(--dim); margin:10px 0 0; }
+
+  footer { margin-top:76px; border-top:1px solid var(--line); }
+  footer .wrap { display:flex; align-items:center; gap:14px; flex-wrap:wrap; min-height:54px; padding-top:14px; padding-bottom:14px; }
+  footer .beats { display:inline-flex; gap:5px; flex:none; }
+  footer .beats i { width:9px; height:9px; border-radius:3px; background:var(--muted); }
+  footer .beats i:first-child { background:var(--accentDim); }
+  footer .links { font-size:13px; color:var(--dim); }
+  footer a { color:var(--dim); text-decoration:none; }
+  footer a:hover { color:var(--accent); text-decoration:underline; }
+  footer .sep { color:var(--muted); margin:0 7px; }
+  footer .made { margin-left:auto; font-size:13px; color:var(--muted); }
+  @media (max-width:560px) { footer .made { margin-left:0; width:100%; } }
+
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
 </style>
 </head>
 <body>
+
+<header class="hero">
+  <div class="ruler" aria-hidden="true"><i></i><b></b></div>
+  <div class="wrap">
+    <p class="modes"><span class="on">Metronome</span><span>Tuner</span></p>
+    <h1>Steady</h1>
+    <p class="lede">A metronome and tuner for people who actually practise.</p>
+    <p>Most metronome apps stop at a tempo and a time signature. Steady handles the
+       things a practice session really needs: odd meters, polyrhythms, subdivisions
+       you can hear, and sequences that change tempo partway through a piece — so a
+       piece with a ritardando can be practised as one run rather than three.</p>
+    <p>It keeps a record of what you played, so progress is something you can look at
+       rather than something you have to remember.</p>
+
+    <div class="get">
+      <a class="btn" href="https://play.google.com/store/apps/details?id=com.danielodea.steady">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3.2 1.6 11.9 8 3.2 14.4z"/></svg>
+        Get it on Google Play</a>
+      <span class="btn pending">App Store — coming soon</span>
+    </div>
+    <p class="note">Free, with an optional one-time Pro upgrade. No subscription, no ads.</p>
+    <figure class="hero-shot">
+      <div class="phone"><img src="shots/metronome.webp" alt="Steady's metronome screen: the tempo at 120 BPM with the vertical tempo slider down the right-hand edge" width="720" height="1558"></div>
+    </figure>
+  </div>
+</header>
+
 <main>
-<div class="card">
-  <h1>Steady</h1>
-  <p class="lede">A metronome and tuner for people who actually practise.</p>
 
-  <p>Most metronome apps stop at a tempo and a time signature. Steady handles the
-     things a practice session really needs: odd meters, polyrhythms, subdivisions
-     you can hear, and sequences that change tempo partway through a piece — so a
-     piece with a ritardando can be practised as one run rather than three.</p>
+<section>
+  <div class="wrap">
+    <p class="kicker">What it does</p>
+    <h2>Built for the practice session, not the demo</h2>
+    <p>Five things a metronome has to get right before it earns a place on the stand.</p>
 
-  <p>It keeps a record of what you played, so progress is something you can look at
-     rather than something you have to remember.</p>
-
-  <div class="strip">
-    <figure>
-      <img src="shots/metronome.webp" alt="Steady's metronome screen with the vertical tempo slider" loading="lazy" width="720" height="1558">
-      <figcaption>The metronome, with the tempo slider under your thumb.</figcaption>
-    </figure>
-    <figure>
-      <img src="shots/tuner.webp" alt="Steady's chromatic tuner" loading="lazy" width="720" height="1558">
-      <figcaption>A chromatic tuner, in the same app.</figcaption>
-    </figure>
-    <figure>
-      <img src="shots/practice.webp" alt="A practice heatmap and streak" loading="lazy" width="720" height="1558">
-      <figcaption>What you practised, and for how long.</figcaption>
-    </figure>
-    <figure>
-      <img src="shots/sequences.webp" alt="A sequence playing through sections with changing tempo" loading="lazy" width="720" height="1558">
-      <figcaption>Sequences that change tempo and meter mid-piece.</figcaption>
-    </figure>
-    <figure>
-      <img src="shots/fullscreen.webp" alt="Full-screen pendulum focus mode" loading="lazy" width="720" height="1558">
-      <figcaption>Full screen, for across-the-room visibility.</figcaption>
-    </figure>
+    <div class="tiles">
+      <div class="tile">
+        <div class="glyph"><span class="frac"><span>7</span><span>8</span></span></div>
+        <h3>Odd meters</h3>
+        <p>Any time signature, with the accents where you put them.</p>
+      </div>
+      <div class="tile">
+        <div class="glyph">3:2</div>
+        <h3>Polyrhythms</h3>
+        <p>A second pulse against the first, with its own indicator.</p>
+      </div>
+      <div class="tile">
+        <div class="glyph">
+          <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+            <circle cx="6" cy="16" r="2.7"/><circle cx="16.5" cy="13.6" r="2.7"/><path d="M8.7 16V5.4l10.5-2.2v10.4M8.7 8.2l10.5-2.2"/>
+          </svg></div>
+        <h3>Subdivisions</h3>
+        <p>Eighths, triplets, sixteenths — audible, not implied.</p>
+      </div>
+      <div class="tile">
+        <div class="glyph">
+          <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M2.5 16.5h5v-4h5v-4h7"/><path d="M16.5 5.5 19.5 8.5 16.5 11.5"/>
+          </svg></div>
+        <h3>Sequences</h3>
+        <p>Tempo and meter changes mid-piece, played as one run.</p>
+      </div>
+      <div class="tile">
+        <div class="glyph">
+          <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+            <path d="M3.5 18.5V12M8.5 18.5V6.5M13.5 18.5v-9M18.5 18.5V3.5"/>
+          </svg></div>
+        <h3>Practice log</h3>
+        <p>What you played and for how long, kept without asking.</p>
+      </div>
+    </div>
   </div>
+</section>
 
-  <h2>Get it</h2>
-  <div class="get">
-    <a class="btn" href="https://play.google.com/store/apps/details?id=com.danielodea.steady">Google Play</a>
-    <span class="btn pending">App Store — coming soon</span>
+<section>
+  <div class="wrap">
+    <p class="kicker">The app</p>
+    <h2>The rest of the session</h2>
+    <p>A chromatic tuner behind the same switch as the metronome, and the three screens
+       a practice session actually spends its time on.</p>
+
+    <div class="strip">
+      <figure>
+        <div class="phone"><img src="shots/tuner.webp" alt="Steady's chromatic tuner" width="720" height="1558"></div>
+        <figcaption>A chromatic tuner, in the same app.</figcaption>
+      </figure>
+      <figure>
+        <div class="phone"><img src="shots/practice.webp" alt="A practice heatmap and streak" loading="lazy" width="720" height="1558"></div>
+        <figcaption>What you practised, and for how long.</figcaption>
+      </figure>
+      <figure>
+        <div class="phone"><img src="shots/sequences.webp" alt="A sequence playing through sections with changing tempo" loading="lazy" width="720" height="1558"></div>
+        <figcaption>Sequences that change tempo and meter mid-piece.</figcaption>
+      </figure>
+      <figure>
+        <div class="phone"><img src="shots/fullscreen.webp" alt="Full-screen pendulum focus mode" loading="lazy" width="720" height="1600"></div>
+        <figcaption>Full screen, for across-the-room visibility.</figcaption>
+      </figure>
+    </div>
   </div>
-  <p class="note">Free, with an optional one-time Pro upgrade. No subscription, no ads.</p>
+</section>
 
-  <h2>It keeps playing when you put the phone down</h2>
-  <p>A metronome that stops the moment the screen locks is useless, so Steady runs
-     its click as a foreground media service: it keeps sounding while you are
-     looking at your score, with tempo and transport on the notification and the
-     lock screen. That is the only thing it does in the background, and it stops
-     when you stop it.</p>
-</div>
-<footer>
-  <a href="/steady-privacy">Privacy</a> ·
-  <a href="/">danielodea.com</a> ·
-  Made by Daniel O'Dea
-</footer>
+<section>
+  <div class="wrap">
+    <div class="card">
+      <h2>It keeps playing when you put the phone down</h2>
+      <p>A metronome that stops the moment the screen locks is useless, so Steady runs
+         its click as a foreground media service: it keeps sounding while you are
+         looking at your score, with tempo and transport on the notification and the
+         lock screen. That is the only thing it does in the background, and it stops
+         when you stop it.</p>
+    </div>
+  </div>
+</section>
+
 </main>
+
+<footer>
+  <div class="wrap">
+    <span class="beats" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    <span class="links">
+      <a href="/steady-privacy">Privacy</a><span class="sep">&middot;</span>
+      <a href="/">danielodea.com</a>
+    </span>
+    <span class="made">Made by Daniel O'Dea</span>
+  </div>
+</footer>
+
 </body>
 </html>
