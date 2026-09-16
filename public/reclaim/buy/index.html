@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buy Reclaim Pro</title>
+<meta name="description" content="A one-time A$14.99 licence for the direct-download edition of Reclaim Disk Space.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0E1013" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F4F5F8" media="(prefers-color-scheme: light)">
+<style>
+  /* Same tokens as /reclaim/, trimmed to what this page uses. */
+  :root {
+    color-scheme: light dark;
+    --canvas:#F4F5F8; --surface:#FFFFFF; --surfaceHigh:#EBEEF3; --hairline:#DCE1E9;
+    --ink:#12151A; --dim:#5A6472; --faint:#8A94A3; --accent:#0E9E96; --warning:#B87512;
+    --shadow:0 1px 2px rgba(18,21,26,.05), 0 12px 32px rgba(18,21,26,.07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --canvas:#0E1013; --surface:#16191E; --surfaceHigh:#1F242B; --hairline:#2A3038;
+      --ink:#EDF0F4; --dim:#98A1AE; --faint:#667081; --accent:#3FD0C9; --warning:#FFB454;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 16px 40px rgba(0,0,0,.45);
+    }
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--canvas); color:var(--ink);
+    font:15px/1.65 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap { max-width:560px; margin:0 auto; padding:48px 16px 64px; }
+  a { color:var(--accent); text-underline-offset:3px; }
+  h1 { font-size:28px; letter-spacing:-.02em; margin:0 0 6px; }
+  .lede { color:var(--dim); margin:0 0 24px; }
+  .card {
+    background:var(--surface); border:1px solid var(--hairline); border-radius:16px;
+    padding:22px; box-shadow:var(--shadow);
+  }
+  .readout { margin:0 0 14px; display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  .readout .val { font-size:30px; font-weight:300; line-height:1; }
+  .readout .unit { font-size:13px; color:var(--dim); }
+  ul { padding-left:19px; margin:0 0 18px; color:var(--dim); }
+  li { margin:6px 0; }
+  .btn {
+    display:inline-flex; align-items:center; background:var(--surfaceHigh);
+    border:1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+    border-radius:10px; padding:9px 15px; font:inherit; font-size:13.5px; font-weight:600;
+    color:var(--accent); cursor:pointer;
+  }
+  .btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .note { color:var(--faint); font-size:12.5px; margin:16px 0 0; }
+  .done { display:none; }
+  .done.shown { display:block; }
+  .error { color:var(--warning); font-size:13px; margin:12px 0 0; min-height:1em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p><a href="/reclaim/">&#8249; Reclaim Disk Space</a></p>
+  <h1>Reclaim Pro</h1>
+  <p class="lede">For the direct-download edition. The App Store edition unlocks Pro from inside the app instead.</p>
+
+  <div class="card" id="offer">
+    <p class="readout"><span class="val">A$14.99</span><span class="unit">once &middot; no subscription</span></p>
+    <ul>
+      <li>Every <code>node_modules</code> on the disk</li>
+      <li>Large files you have not opened in a year</li>
+      <li>External and network volumes</li>
+      <li>Compare against a previous scan</li>
+    </ul>
+    <button class="btn" id="buy" type="button">Buy a licence</button>
+    <p class="error" id="error" role="status"></p>
+    <p class="note">Checkout is run by Paddle, who handle payment and tax. Your licence key
+      is emailed to the address you enter, usually within a minute.</p>
+  </div>
+
+  <div class="card done" id="done">
+    <p class="readout"><span class="val">Thank you</span></p>
+    <p>Your licence key is on its way<span id="to"></span>. In Reclaim, choose
+       <b>Unlock Pro</b>, then <b>Enter Licence Key…</b>, and paste the whole key.</p>
+    <p class="note">Nothing after a few minutes? Check spam, then write to
+      <a href="mailto:keyboardappdev@gmail.com">keyboardappdev@gmail.com</a> with your
+      order number and it will be re-sent.</p>
+  </div>
+</div>
+
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+<script>
+  // Both values are public by design: a client-side token can only open
+  // checkouts, and the price id is in every checkout URL.
+  var CLIENT_TOKEN = "live_80e9a4a254e815953fa53dede72";
+  var PRICE_ID = "pri_01m2n5yfdpjyqc873e8hdzqbtk";
+
+  var buy = document.getElementById("buy");
+  var error = document.getElementById("error");
+
+  function showDone(email) {
+    document.getElementById("offer").style.display = "none";
+    if (email) document.getElementById("to").textContent = " to " + email;
+    document.getElementById("done").classList.add("shown");
+  }
+
+  try {
+    Paddle.Initialize({
+      token: CLIENT_TOKEN,
+      eventCallback: function (e) {
+        if (e && e.name === "checkout.completed") {
+          var email = e.data && e.data.customer && e.data.customer.email;
+          showDone(email);
+        }
+      }
+    });
+  } catch (e) {
+    error.textContent = "Checkout could not load. Please try again shortly.";
+  }
+
+  buy.addEventListener("click", function () {
+    error.textContent = "";
+    try {
+      Paddle.Checkout.open({
+        items: [{ priceId: PRICE_ID, quantity: 1 }],
+        settings: { displayMode: "overlay", theme: matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light", allowLogout: false }
+      });
+    } catch (e) {
+      error.textContent = "Checkout could not open. Please try again shortly.";
+    }
+  });
+</script>
+</body>
+</html>
