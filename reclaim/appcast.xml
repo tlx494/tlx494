@@ -4,11 +4,11 @@
         <title>Reclaim</title>
         <item>
             <title>1.0</title>
-            <pubDate>Thu, 17 Sep 2026 00:32:08 +1000</pubDate>
-            <sparkle:version>8</sparkle:version>
+            <pubDate>Thu, 17 Sep 2026 00:33:10 +1000</pubDate>
+            <sparkle:version>9</sparkle:version>
             <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://danielodea.com/reclaim/releases/Reclaim-1.0.dmg" length="3251201" type="application/octet-stream" sparkle:edSignature="0FJggWvcr2YcUvF52a0nm6krV4ZdLPUXj1Dccy0qlnIx1CJR9lD4fX6joN+t6vtWPRiPF9lNQv0rGbSY06FaAw=="/>
+            <enclosure url="https://danielodea.com/reclaim/releases/Reclaim-1.0.dmg" length="3272292" type="application/octet-stream" sparkle:edSignature="Tl8ueAevwriK23bOhzwdSqVLNYAPOqSwYACp695zUILbScDlTVNa4F3YQ3odbzm4lxHkKbMpwbsj2mmBBLh+CA=="/>
         </item>
     </channel>
 </rss>
