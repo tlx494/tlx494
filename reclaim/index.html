@@ -5,131 +5,478 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reclaim Disk Space — find what is eating your Mac's storage</title>
 <meta name="description" content="A macOS disk space analyser. Two visualisations over one scan, plus a curated list of things that are actually safe to remove.">
+<meta name="theme-color" content="#0E1013" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F4F5F8" media="(prefers-color-scheme: light)">
 <style>
-  :root { color-scheme: light dark; --ink:#12151a; --dim:#5a6472; --bg:#f4f5f8; --card:#fff; --line:#dce1e9; --accent:#0e9e96; }
-  @media (prefers-color-scheme: dark) {
-    :root { --ink:#edf0f4; --dim:#98a1ae; --bg:#0e1013; --card:#16191e; --line:#2a3038; --accent:#3fd0c9; }
+  /* ------------------------------------------------------------------
+     The app's own visual language, lifted from Reclaim/UI/Theme.swift and
+     Resources/Assets.xcassets: a graphite ground, three surface steps
+     instead of borders everywhere, one cool teal used only on the thing
+     you are meant to act on next. Light mode is first-class in the app,
+     so it is first-class here.
+     ------------------------------------------------------------------ */
+  :root {
+    color-scheme: light dark;
+    --canvas:#F4F5F8; --surface:#FFFFFF; --surfaceHigh:#EBEEF3; --hairline:#DCE1E9;
+    --ink:#12151A; --dim:#5A6472; --faint:#8A94A3;
+    --accent:#0E9E96; --accentSoft:#D3F0EE; --warning:#B87512;
+    --shadow:0 1px 2px rgba(18,21,26,.05), 0 12px 32px rgba(18,21,26,.07);
+    /* Palette.swift root hues at depth 0, light ramp: s .68 / l .56 */
+    --h1:hsl(202 68% 46%); --h2:hsl(300 68% 52%); --h3:hsl(190 68% 40%);
+    --h4:hsl(158 68% 36%); --h5:hsl(130 68% 36%); --h6:hsl(16 68% 52%);
   }
-  * { box-sizing: border-box; }
-  body { margin:0; padding:48px 20px; background:var(--bg); color:var(--ink);
-         font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
-  main { max-width:760px; margin:0 auto; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:40px; }
-  h1 { font-size:34px; margin:0 0 6px; letter-spacing:-0.02em; }
-  h2 { font-size:19px; margin:34px 0 10px; }
-  .lede { color:var(--dim); margin-top:0; font-size:18px; }
-  a { color:var(--accent); }
-  ul { padding-left:20px; }
-  li { margin:6px 0; }
-  .buy { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:28px 0 8px; }
-  @media (max-width:620px) { .buy { grid-template-columns:1fr; } }
-  .option { border:1px solid var(--line); border-radius:14px; padding:22px; background:var(--bg); }
-  .option h3 { margin:0 0 4px; font-size:17px; }
-  .option .price { color:var(--dim); font-size:14px; margin:0 0 14px; }
-  .btn { display:inline-block; background:var(--accent); color:#fff; text-decoration:none;
-         padding:10px 18px; border-radius:9px; font-weight:600; font-size:15px; }
-  .btn.secondary { background:transparent; color:var(--accent); border:1px solid var(--accent); }
-  .note { color:var(--dim); font-size:13px; margin-top:12px; }
-  .shots { margin:30px 0 8px; }
-  .shot { margin:0 0 22px; }
-  .shot img { width:100%; display:block; border-radius:10px; border:1px solid var(--line); background:#0e1013; }
-  .shot figcaption { color:var(--dim); font-size:13px; margin-top:7px; }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --canvas:#0E1013; --surface:#16191E; --surfaceHigh:#1F242B; --hairline:#2A3038;
+      --ink:#EDF0F4; --dim:#98A1AE; --faint:#667081;
+      --accent:#3FD0C9; --accentSoft:#1B4A48; --warning:#FFB454;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 16px 40px rgba(0,0,0,.45);
+      /* dark ramp: s .52 / l .48 */
+      --h1:hsl(202 52% 48%); --h2:hsl(300 52% 48%); --h3:hsl(190 52% 48%);
+      --h4:hsl(158 52% 48%); --h5:hsl(130 52% 48%); --h6:hsl(16 52% 48%);
+    }
+  }
 
-  .btn.pending { background:transparent; color:var(--dim); border:1px dashed var(--line);
-                 font-weight:500; cursor:default; }
-  .status { background:var(--bg); border:1px solid var(--line); border-radius:10px;
-            padding:12px 14px; font-size:14px; color:var(--dim); margin:0; }
-  footer { max-width:760px; margin:24px auto 0; color:var(--dim); font-size:13px; }
-  footer a { color:var(--dim); }
+  * { box-sizing:border-box; }
+  html { -webkit-text-size-adjust:100%; }
+  body {
+    margin:0; background:var(--canvas); color:var(--ink);
+    font:15px/1.65 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+    font-variant-numeric:tabular-nums;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap { max-width:1120px; margin:0 auto; padding:0 24px; }
+  .prose { max-width:64ch; }
+  a { color:var(--accent); text-underline-offset:3px; }
+  h1,h2,h3 { letter-spacing:-.02em; }
+
+  /* --- the app's breadcrumb bar ------------------------------------- */
+  .chrome {
+    border-bottom:1px solid var(--hairline); background:var(--canvas);
+    position:sticky; top:0; z-index:5;
+    backdrop-filter:saturate(180%) blur(12px);
+  }
+  .chrome .wrap { display:flex; align-items:center; gap:10px; height:44px; }
+  .chev { color:var(--faint); font-size:15px; line-height:1; }
+  .crumb {
+    background:var(--surfaceHigh); border-radius:6px; padding:3px 9px;
+    font-size:12px; font-weight:600; color:var(--ink); white-space:nowrap;
+  }
+  .chrome .spacer { flex:1; }
+  .chrome .meta { font-size:11.5px; color:var(--faint); white-space:nowrap; }
+  @media (max-width:620px) { .chrome .meta { display:none; } }
+
+  /* --- hero ---------------------------------------------------------- */
+  .hero { position:relative; overflow:hidden; padding:64px 0 8px; }
+  /* The app's own ring, reduced to a mark: two segmented bands whose hues and
+     depth ramp come straight from Viz/Palette.swift, around a dark core. */
+  .hero .ring {
+    position:absolute; right:14px; top:50%; transform:translateY(-50%);
+    width:276px; height:276px; pointer-events:none; opacity:.92;
+  }
+  .hero .ring::before, .hero .ring::after {
+    content:""; position:absolute; inset:0; border-radius:50%;
+  }
+  /* Outer ring: the children of the ring inside it. Depth pales a colour
+     rather than changing it, which is what makes a sunburst read as one
+     hierarchy instead of confetti — so each child is its parent, lightened. */
+  .hero .ring::before {
+    background:conic-gradient(from -96deg,
+      var(--h1) 0 25%, var(--h2) 25% 47%, var(--h5) 47% 68%,
+      var(--h6) 68% 86%, var(--hairline) 86% 100%);
+    background:conic-gradient(from -96deg,
+      color-mix(in srgb, var(--h1) 88%, #fff) 0 11%,
+      color-mix(in srgb, var(--h1) 70%, #fff) 11% 17%,
+      color-mix(in srgb, var(--h1) 80%, #fff) 17% 25%,
+      color-mix(in srgb, var(--h2) 86%, #fff) 25% 33%,
+      color-mix(in srgb, var(--h2) 68%, #fff) 33% 40%,
+      color-mix(in srgb, var(--h2) 78%, #fff) 40% 47%,
+      color-mix(in srgb, var(--h5) 88%, #fff) 47% 56%,
+      color-mix(in srgb, var(--h5) 70%, #fff) 56% 62%,
+      color-mix(in srgb, var(--h5) 80%, #fff) 62% 68%,
+      color-mix(in srgb, var(--h6) 84%, #fff) 68% 76%,
+      color-mix(in srgb, var(--h6) 68%, #fff) 76% 86%,
+      var(--hairline) 86% 100%);
+    -webkit-mask:radial-gradient(circle closest-side, transparent 0 68%, #000 68.7% 89%, transparent 89.7%);
+    mask:radial-gradient(circle closest-side, transparent 0 68%, #000 68.7% 89%, transparent 89.7%);
+  }
+  /* inner ring: their parents */
+  .hero .ring::after {
+    background:conic-gradient(from -96deg,
+      var(--h1) 0 25%, var(--h2) 25% 47%, var(--h5) 47% 68%,
+      var(--h6) 68% 86%, var(--hairline) 86% 100%);
+    -webkit-mask:radial-gradient(circle closest-side, transparent 0 44%, #000 44.7% 65%, transparent 65.7%);
+    mask:radial-gradient(circle closest-side, transparent 0 44%, #000 44.7% 65%, transparent 65.7%);
+  }
+  @media (max-width:900px) { .hero .ring { display:none; } }
+  .hero .wrap { position:relative; }
+  .eyebrow {
+    display:inline-flex; align-items:center; gap:8px; margin:0 0 18px;
+    font-size:11.5px; font-weight:600; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--dim); background:var(--surface); border:1px solid var(--hairline);
+    border-radius:999px; padding:5px 12px 5px 10px;
+  }
+  .eyebrow .pip {
+    width:7px; height:7px; border-radius:50%; background:var(--warning);
+    box-shadow:0 0 0 3px var(--accentSoft);
+    box-shadow:0 0 0 3px color-mix(in srgb, var(--warning) 22%, transparent);
+  }
+  h1 { font-size:clamp(34px,5.4vw,52px); line-height:1.05; margin:0 0 14px; font-weight:600; }
+  .lede { font-size:clamp(18px,2.4vw,23px); line-height:1.38; color:var(--ink); margin:0 0 24px; max-width:30ch; }
+  .hero p:not(.lede):not(.eyebrow) { color:var(--dim); font-size:16px; }
+  code {
+    font:.92em/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+    background:var(--surfaceHigh); border-radius:4px; padding:2px 5px; color:var(--ink);
+  }
+
+  /* --- sections ------------------------------------------------------ */
+  section { padding:56px 0 0; }
+  h2 { font-size:22px; line-height:1.28; margin:0 0 8px; font-weight:600; }
+  .kicker {
+    font-size:11.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--accent); margin:0 0 8px;
+  }
+  section > .wrap > p { color:var(--dim); margin:0 0 22px; }
+
+  /* --- the window frame around every screenshot ---------------------- */
+  figure { margin:0; }
+  .frame {
+    border:1px solid var(--hairline); border-radius:14px; overflow:hidden;
+    background:#0E1013; box-shadow:var(--shadow);
+  }
+  /* THE FIX: the <img> carries intrinsic width/height attributes so the box
+     is reserved before the image loads. Setting only `width:100%` leaves the
+     HTML `height` attribute in force as a presentational hint, which is what
+     stretched every shot vertically. height:auto cancels it. */
+  .frame img { display:block; width:100%; height:auto; }
+  figcaption { color:var(--dim); font-size:13.5px; margin-top:10px; max-width:70ch; }
+
+  /* --- the app's view picker, driving the shot below it -------------- */
+  .viewer input { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
+  .seg {
+    display:inline-flex; gap:2px; padding:2px; margin:0 0 16px;
+    background:var(--surfaceHigh); border:1px solid var(--hairline); border-radius:9px;
+  }
+  .seg label {
+    display:inline-flex; align-items:center; gap:7px; cursor:pointer;
+    padding:6px 13px; border-radius:7px; font-size:13px; font-weight:500;
+    color:var(--dim); border:1px solid transparent; white-space:nowrap;
+    transition:color .15s ease, background .15s ease;
+  }
+  .seg label:hover { color:var(--ink); }
+  .seg svg { width:13px; height:13px; flex:none; }
+  .viewer .stage { display:grid; }
+  .viewer .pane { grid-area:1/1; opacity:0; visibility:hidden; transition:opacity .22s ease; }
+  #v-sun:checked  ~ .stage .p-sun,
+  #v-tree:checked ~ .stage .p-tree,
+  #v-both:checked ~ .stage .p-both { opacity:1; visibility:visible; }
+  #v-sun:checked  ~ .seg label[for=v-sun],
+  #v-tree:checked ~ .seg label[for=v-tree],
+  #v-both:checked ~ .seg label[for=v-both] {
+    background:var(--surface); color:var(--ink); border-color:var(--hairline);
+    box-shadow:0 1px 2px rgba(0,0,0,.08);
+  }
+  #v-sun:focus-visible  ~ .seg label[for=v-sun],
+  #v-tree:focus-visible ~ .seg label[for=v-tree],
+  #v-both:focus-visible ~ .seg label[for=v-both] { outline:2px solid var(--accent); outline-offset:2px; }
+
+  /* --- the right rail's "Reclaimable" panel, as a page section ------- */
+  .split { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:34px; align-items:start; }
+  @media (max-width:860px) { .split { grid-template-columns:minmax(0,1fr); } }
+  .rail {
+    background:var(--surface); border:1px solid var(--hairline); border-radius:16px;
+    padding:6px 16px 14px; box-shadow:var(--shadow);
+  }
+  .rail-head {
+    display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+    padding:14px 0 10px; border-bottom:1px solid var(--hairline);
+  }
+  .rail-head b { font-size:14px; font-weight:600; }
+  .rail-head span { font-size:12px; color:var(--accent); font-weight:600; }
+  .rail ul { list-style:none; margin:0; padding:0; }
+  .rail li {
+    display:grid; grid-template-columns:9px 1fr; gap:11px; align-items:baseline;
+    padding:10px 0; border-bottom:1px solid var(--hairline);
+  }
+  .rail li:last-child { border-bottom:0; }
+  .rail .dot { width:9px; height:9px; border-radius:2.5px; transform:translateY(1px); }
+  .rail .n { font-size:13.5px; font-weight:500; display:block; }
+  .rail .w { font-size:12.5px; color:var(--dim); display:block; line-height:1.45; }
+  .rail .tail { font-size:12.5px; color:var(--faint); margin:12px 0 0; line-height:1.5; }
+
+  /* --- get it -------------------------------------------------------- */
+  .status {
+    display:flex; gap:11px; align-items:flex-start;
+    background:var(--surface); border:1px solid var(--hairline);
+    background:color-mix(in srgb, var(--warning) 9%, var(--surface));
+    border-color:color-mix(in srgb, var(--warning) 28%, var(--hairline));
+    border-radius:12px; padding:13px 15px; font-size:13.5px; color:var(--ink);
+    margin:0 0 22px; max-width:64ch;
+  }
+  .status .pip { width:7px; height:7px; border-radius:50%; background:var(--warning); flex:none; margin-top:7px; }
+  .buy { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:720px) { .buy { grid-template-columns:1fr; } }
+  .option {
+    background:var(--surface); border:1px solid var(--hairline); border-radius:16px;
+    padding:22px; box-shadow:var(--shadow); display:flex; flex-direction:column;
+  }
+  .option h3 { margin:0; font-size:14px; font-weight:600; }
+  /* The inspector's readout: a big light tabular figure with a small unit. */
+  .readout { margin:10px 0 16px; display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  .readout .val { font-size:30px; font-weight:300; line-height:1; letter-spacing:-.015em; }
+  .readout .unit { font-size:13px; color:var(--dim); }
+  .note { color:var(--dim); font-size:12.5px; margin:14px 0 0; line-height:1.55; }
+  /* QuietButtonStyle: a neutral fill, the accent surviving only as the edge
+     and the glyph. A big accent slab reads as loud — so it is not one. */
+  .btn {
+    display:inline-flex; align-items:center; gap:8px; align-self:flex-start;
+    background:var(--surfaceHigh); border:1px solid var(--hairline);
+    border-radius:10px; padding:9px 15px; font-size:13.5px; font-weight:600;
+    color:var(--ink); text-decoration:none;
+  }
+  .btn.prominent { border-color:var(--accent); color:var(--accent); }
+  .btn.prominent { border-color:color-mix(in srgb, var(--accent) 55%, transparent); }
+  .btn.pending { color:var(--dim); border-style:dashed; font-weight:500; cursor:default; background:transparent; }
+  .btn svg { width:14px; height:14px; }
+
+  ul.plain { padding-left:19px; margin:0 0 4px; }
+  ul.plain li { margin:9px 0; color:var(--dim); }
+  ul.plain li b { color:var(--ink); font-weight:600; }
+
+  /* --- the app's bottom status strip, as the footer ------------------ */
+  footer { margin-top:72px; border-top:1px solid var(--hairline); background:var(--surface); }
+  footer .wrap { display:flex; align-items:center; gap:14px; flex-wrap:wrap; min-height:52px; padding-top:12px; padding-bottom:12px; }
+  .capacity { width:132px; height:5px; border-radius:999px; background:var(--surfaceHigh); overflow:hidden; flex:none; }
+  .capacity i { display:block; height:100%; width:36%; border-radius:999px; background:var(--accent); }
+  footer .links { font-size:12.5px; color:var(--dim); }
+  footer a { color:var(--dim); text-decoration:none; }
+  footer a:hover { color:var(--accent); text-decoration:underline; }
+  footer .sep { color:var(--faint); margin:0 7px; }
+  footer .made { margin-left:auto; font-size:12.5px; color:var(--faint); }
+  @media (max-width:560px) { footer .made { margin-left:0; width:100%; } }
+
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
 </style>
 </head>
 <body>
+
+<div class="chrome">
+  <div class="wrap">
+    <span class="chev">&#8249;</span>
+    <span class="crumb">Reclaim Disk Space</span>
+    <span class="spacer"></span>
+    <span class="meta">macOS 14 Sonoma or later</span>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="ring" aria-hidden="true"></div>
+    <p class="eyebrow"><span class="pip"></span> Version 1.0 &middot; in review</p>
+    <h1>Reclaim Disk&nbsp;Space</h1>
+    <p class="lede">Find what is actually eating your Mac's storage, and get it back.</p>
+    <div class="prose">
+      <p>Point it at a disk. It measures every folder the way <code>du</code> does — what files
+         really occupy, not what Finder rounds them to — and draws the result two ways at once:
+         a sunburst you read by shape, and a treemap you read by area. Alongside it is a list of
+         things that are genuinely safe to remove, each one explaining what it costs you.</p>
+      <p>Nothing is ever erased. Everything goes to the Trash, so anything can be put back.</p>
+    </div>
+  </div>
+</header>
+
 <main>
-<div class="card">
-  <h1>Reclaim Disk Space</h1>
-  <p class="lede">Find what is actually eating your Mac's storage, and get it back.</p>
 
-  <p>Point it at a disk. It measures every folder the way <code>du</code> does — what files
-     really occupy, not what Finder rounds them to — and draws the result two ways at once:
-     a sunburst you read by shape, and a treemap you read by area. Alongside it is a list of
-     things that are genuinely safe to remove, each one explaining what it costs you.</p>
+<section>
+  <div class="wrap">
+    <p class="kicker">One scan</p>
+    <h2>Two ways to look at it</h2>
+    <p class="prose">The same measurement, drawn however you read a disk best — and both at once
+       when you want the shape and the areas together.</p>
 
-  <p>Nothing is ever erased. Everything goes to the Trash, so anything can be put back.</p>
+    <div class="viewer">
+      <input type="radio" name="view" id="v-sun" checked>
+      <input type="radio" name="view" id="v-tree">
+      <input type="radio" name="view" id="v-both">
 
+      <div class="seg">
+        <label for="v-sun">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <circle cx="8" cy="8" r="6.2"/><circle cx="8" cy="8" r="2.4"/><path d="M8 1.8V5.6M14.2 8H10.4M5.6 13.3 7.2 9.9"/>
+          </svg>Sunburst</label>
+        <label for="v-tree">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <rect x="1.8" y="1.8" width="12.4" height="12.4" rx="1.6"/><path d="M9 1.8v12.4M9 7.4h5.2M1.8 10.4H9"/>
+          </svg>Treemap</label>
+        <label for="v-both">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <rect x="1.8" y="1.8" width="12.4" height="12.4" rx="1.6"/><path d="M8 1.8v12.4"/>
+          </svg>Both</label>
+      </div>
 
-  <div class="shots">
-    <figure class="shot">
-      <img src="shots/sunburst.webp" alt="Reclaim's sunburst view of a full disk, with a reclaimable list beside it" loading="lazy" width="1600" height="1000">
-      <figcaption>Every folder on the disk, read by shape. The ring is sized by what files actually occupy.</figcaption>
-    </figure>
-      <figure class="shot">
-        <img src="shots/treemap.webp" alt="The same scan drawn as a treemap" loading="lazy" width="1600" height="1000">
-        <figcaption>The same scan as a treemap, read by area.</figcaption>
-      </figure>
-      <figure class="shot">
-        <img src="shots/both.webp" alt="Sunburst and treemap side by side, sharing a pointer" loading="lazy" width="1600" height="1000">
-        <figcaption>Or both at once, sharing a pointer.</figcaption>
-      </figure>
-      <figure class="shot">
-        <img src="shots/reclaimable.webp" alt="The reclaimable list, grouped by category with sizes" loading="lazy" width="1600" height="1000">
+      <div class="stage">
+        <figure class="pane p-sun">
+          <div class="frame">
+            <img src="shots/sunburst.webp" alt="Reclaim's sunburst view of a full disk, with a reclaimable list beside it" width="1600" height="1000">
+          </div>
+          <figcaption>Every folder on the disk, read by shape. The ring is sized by what files actually occupy.</figcaption>
+        </figure>
+        <figure class="pane p-tree">
+          <div class="frame">
+            <img src="shots/treemap.webp" alt="The same scan drawn as a treemap" loading="lazy" width="1600" height="1000">
+          </div>
+          <figcaption>The same scan as a treemap, read by area.</figcaption>
+        </figure>
+        <figure class="pane p-both">
+          <div class="frame">
+            <img src="shots/both.webp" alt="Sunburst and treemap side by side, sharing a pointer" loading="lazy" width="1600" height="1000">
+          </div>
+          <figcaption>Or both at once, sharing a pointer.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker">Curated, not guessed</p>
+    <h2>What is safe to remove</h2>
+    <p class="prose">An analyser tells you where the space went. This also tells you what you can
+       do about it — and what each one costs you if you do.</p>
+
+    <div class="split">
+      <figure>
+        <div class="frame">
+          <img src="shots/reclaimable.webp" alt="The reclaimable list, grouped by category with sizes" loading="lazy" width="1600" height="1000">
+        </div>
         <figcaption>What is safe to remove, and what each one costs you.</figcaption>
       </figure>
-      <figure class="shot">
+
+      <div class="rail">
+        <div class="rail-head"><b>Reclaimable</b><span>What it looks for</span></div>
+        <ul>
+          <li><span class="dot" style="background:var(--h1)"></span><span>
+            <span class="n">iPhone and iPad backups</span>
+            <span class="w">The only copy of anything not also in iCloud.</span></span></li>
+          <li><span class="dot" style="background:var(--h2)"></span><span>
+            <span class="n">Application caches</span>
+            <span class="w">Apps rebuild them; a few will be briefly slower.</span></span></li>
+          <li><span class="dot" style="background:var(--h3)"></span><span>
+            <span class="n">Trash</span>
+            <span class="w">Not returned until the Trash is emptied.</span></span></li>
+          <li><span class="dot" style="background:var(--h4)"></span><span>
+            <span class="n">Mail downloads</span>
+            <span class="w">Copies. The originals stay in the messages.</span></span></li>
+          <li><span class="dot" style="background:var(--h5)"></span><span>
+            <span class="n">Large and untouched</span>
+            <span class="w">Over 200&nbsp;MB, unopened for a year.</span></span></li>
+          <li><span class="dot" style="background:var(--h6)"></span><span>
+            <span class="n">Logs</span>
+            <span class="w">Useful only while chasing a problem you know about.</span></span></li>
+        </ul>
+        <p class="tail">Plus the developer ones, when you have them: Xcode archives and build output,
+           iOS device support, simulator data, package caches and <code>node_modules</code>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker">Depth</p>
+    <h2>As deep as you want to look</h2>
+    <p class="prose">Up to twelve rings, scrolled with the trackpad. Drill into a wedge and the
+       whole map reframes around it.</p>
+    <figure>
+      <div class="frame">
         <img src="shots/layers.webp" alt="The sunburst drawn twelve rings deep" loading="lazy" width="1600" height="1000">
-        <figcaption>As deep as you want to look — up to twelve rings.</figcaption>
-      </figure>
-    <figure class="shot">
-      <img src="shots/marked.webp" alt="Items marked for removal listed along the bottom of the window" loading="lazy" width="1600" height="1000">
-      <figcaption>Mark things as you find them. Nothing moves until you say so, and everything goes to the Trash.</figcaption>
+      </div>
     </figure>
   </div>
+</section>
 
-  <h2>Get it</h2>
-  <p class="status">Reclaim 1.0 is in review. Both versions go live here the day it
-     is approved — this page will stop saying this when they do.</p>
-  <div class="buy">
-    <div class="option">
-      <h3>Mac App Store</h3>
-      <p class="price">Free, with a one-time A$14.99 upgrade</p>
-      <span class="btn pending">Coming soon</span>
-      <p class="note">Updates through the App Store. Sandboxed, so macOS keeps Mail, Safari
-         data and Time Machine snapshots hidden from it.</p>
-    </div>
-    <div class="option">
-      <h3>Direct download</h3>
-      <p class="price">A$14.99 one-time, no subscription</p>
-      <span class="btn pending">Coming soon</span>
-      <p class="note">Can be granted Full Disk Access, so it measures Mail, Safari and Time
-         Machine local snapshots too. Updates itself in place.</p>
+<section>
+  <div class="wrap">
+    <p class="kicker">Reversible by design</p>
+    <h2>Nothing moves until you say so</h2>
+    <p class="prose">Mark things as you find them. They collect in a bar along the bottom with a
+       running total, and nothing leaves until you confirm it — then it goes to the Trash, not
+       into thin air.</p>
+    <figure>
+      <div class="frame">
+        <img src="shots/marked.webp" alt="Items marked for removal listed along the bottom of the window" loading="lazy" width="1600" height="1000">
+      </div>
+    </figure>
   </div>
+</section>
 
-  <h2>Which one?</h2>
-  <p>They are the same app, built from the same source. The difference is the sandbox.</p>
-  <ul>
-    <li><b>A sandboxed app cannot be given Full Disk Access.</b> The sandbox is checked
-        before that setting, so turning it on in System Settings does nothing — which is
-        why the App Store version reports those folders as skipped rather than pretending
-        it measured them.</li>
-    <li>The direct download has no sandbox, so one grant makes all of it measurable, and
-        external drives readable with no per-drive prompt.</li>
-    <li>Everything else — the maps, the reclaim rules, the Trash-only removal — is
-        identical.</li>
-  </ul>
+<section id="get">
+  <div class="wrap">
+    <p class="kicker">Get it</p>
+    <h2>Two builds, one app</h2>
+    <p class="status"><span class="pip"></span>
+      <span>Reclaim 1.0 is in review. Both versions go live here the day it is approved —
+      this page will stop saying this when they do.</span></p>
 
-  <h2>Your licence</h2>
-  <p>A direct-download licence is a signed key, checked on your own Mac. It is never sent
-     anywhere, it works offline, and it keeps working on every Mac you own. There is no
-     account, no activation server, and nothing to lose access to if this site ever goes
-     away.</p>
+    <div class="buy">
+      <div class="option">
+        <h3>Mac App Store</h3>
+        <p class="readout"><span class="val">Free</span><span class="unit">then a one-time A$14.99 upgrade</span></p>
+        <span class="btn pending">Coming soon</span>
+        <p class="note">Updates through the App Store. Sandboxed, so macOS keeps Mail, Safari
+           data and Time Machine snapshots hidden from it.</p>
+      </div>
+      <div class="option">
+        <h3>Direct download</h3>
+        <p class="readout"><span class="val">A$14.99</span><span class="unit">one-time &middot; no subscription</span></p>
+        <span class="btn pending">Coming soon</span>
+        <p class="note">Can be granted Full Disk Access, so it measures Mail, Safari and Time
+           Machine local snapshots too. Updates itself in place.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
-  <h2>Requirements</h2>
-  <p>macOS 14 Sonoma or later. Apple silicon or Intel.</p>
-</div>
-<footer>
-  <a href="/reclaim-privacy">Privacy</a> ·
-  <a href="/reclaim-support">Support</a> ·
-  Made by Daniel O'Dea
-</footer>
+<section>
+  <div class="wrap"><div class="prose">
+    <h2>Which one?</h2>
+    <p>They are the same app, built from the same source. The difference is the sandbox.</p>
+    <ul class="plain">
+      <li><b>A sandboxed app cannot be given Full Disk Access.</b> The sandbox is checked
+          before that setting, so turning it on in System Settings does nothing — which is
+          why the App Store version reports those folders as skipped rather than pretending
+          it measured them.</li>
+      <li>The direct download has no sandbox, so one grant makes all of it measurable, and
+          external drives readable with no per-drive prompt.</li>
+      <li>Everything else — the maps, the reclaim rules, the Trash-only removal — is
+          identical.</li>
+    </ul>
+
+    <h2 style="margin-top:44px">Your licence</h2>
+    <p>A direct-download licence is a signed key, checked on your own Mac. It is never sent
+       anywhere, it works offline, and it keeps working on every Mac you own. There is no
+       account, no activation server, and nothing to lose access to if this site ever goes
+       away.</p>
+
+    <h2 style="margin-top:44px">Requirements</h2>
+    <p>macOS 14 Sonoma or later. Apple silicon or Intel.</p>
+  </div></div>
+</section>
+
 </main>
+
+<footer>
+  <div class="wrap">
+    <span class="capacity" aria-hidden="true"><i></i></span>
+    <span class="links">
+      <a href="/reclaim-privacy">Privacy</a><span class="sep">&middot;</span>
+      <a href="/reclaim-support">Support</a><span class="sep">&middot;</span>
+      <a href="/">danielodea.com</a>
+    </span>
+    <span class="made">Made by Daniel O'Dea</span>
+  </div>
+</footer>
+
 </body>
 </html>
