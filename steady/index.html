@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Steady — metronome &amp; tuner</title>
+<meta name="description" content="A metronome and tuner for musicians who practise. Polyrhythms, odd meters, sequences that change tempo mid-piece, and a record of what you actually played.">
+<style>
+  /* Steady's own identity, not the site's: canvas #0F1115, Sunset accent. */
+  :root { color-scheme: dark; --ink:#F2F3F5; --dim:#8A90A0; --bg:#0F1115;
+          --card:#1A1D24; --high:#242832; --line:#2C313B;
+          --accent:#FFC152; --accent2:#FF8A3D; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:48px 20px; background:var(--bg); color:var(--ink);
+         font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  main { max-width:760px; margin:0 auto; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:40px; }
+  h1 { font-size:34px; margin:0 0 6px; letter-spacing:-0.02em; }
+  h2 { font-size:19px; margin:34px 0 10px; }
+  .lede { color:var(--dim); margin-top:0; font-size:18px; }
+  a { color:var(--accent); }
+  ul { padding-left:20px; }
+  li { margin:6px 0; }
+  .btn { display:inline-block; background:linear-gradient(135deg,var(--accent),var(--accent2));
+         color:#181207; text-decoration:none; padding:11px 20px; border-radius:9px;
+         font-weight:650; font-size:15px; }
+  .btn.secondary { background:transparent; color:var(--accent);
+                   border:1px solid var(--line); font-weight:600; }
+  .btn.pending { background:transparent; color:var(--dim); border:1px dashed var(--line);
+                 font-weight:500; cursor:default; }
+  .get { display:flex; gap:12px; flex-wrap:wrap; margin:26px 0 4px; }
+  /* A grid, not a horizontal scroller. The scroller put two of the five images
+     off the right edge with nothing to say they were there — hidden content
+     with no affordance is worse than a taller page. auto-fit gives three across
+     on a desktop card and one or two on a phone, with no breakpoint to pick. */
+  .strip { display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));
+           gap:18px 14px; margin:26px 0 0; }
+  .strip figure { margin:0; }
+  .strip img { width:100%; display:block; border-radius:12px; border:1px solid var(--line); }
+  .strip figcaption { color:var(--dim); font-size:13px; margin-top:8px; }
+  .note { color:var(--dim); font-size:13px; }
+  footer { max-width:760px; margin:24px auto 0; color:var(--dim); font-size:13px; }
+  footer a { color:var(--dim); }
+</style>
+</head>
+<body>
+<main>
+<div class="card">
+  <h1>Steady</h1>
+  <p class="lede">A metronome and tuner for people who actually practise.</p>
+
+  <p>Most metronome apps stop at a tempo and a time signature. Steady handles the
+     things a practice session really needs: odd meters, polyrhythms, subdivisions
+     you can hear, and sequences that change tempo partway through a piece — so a
+     piece with a ritardando can be practised as one run rather than three.</p>
+
+  <p>It keeps a record of what you played, so progress is something you can look at
+     rather than something you have to remember.</p>
+
+  <div class="strip">
+    <figure>
+      <img src="shots/metronome.webp" alt="Steady's metronome screen with the vertical tempo slider" loading="lazy" width="720" height="1558">
+      <figcaption>The metronome, with the tempo slider under your thumb.</figcaption>
+    </figure>
+    <figure>
+      <img src="shots/tuner.webp" alt="Steady's chromatic tuner" loading="lazy" width="720" height="1558">
+      <figcaption>A chromatic tuner, in the same app.</figcaption>
+    </figure>
+    <figure>
+      <img src="shots/practice.webp" alt="A practice heatmap and streak" loading="lazy" width="720" height="1558">
+      <figcaption>What you practised, and for how long.</figcaption>
+    </figure>
+    <figure>
+      <img src="shots/sequences.webp" alt="A sequence playing through sections with changing tempo" loading="lazy" width="720" height="1558">
+      <figcaption>Sequences that change tempo and meter mid-piece.</figcaption>
+    </figure>
+    <figure>
+      <img src="shots/fullscreen.webp" alt="Full-screen pendulum focus mode" loading="lazy" width="720" height="1558">
+      <figcaption>Full screen, for across-the-room visibility.</figcaption>
+    </figure>
+  </div>
+
+  <h2>Get it</h2>
+  <div class="get">
+    <a class="btn" href="https://play.google.com/store/apps/details?id=com.danielodea.steady">Google Play</a>
+    <span class="btn pending">App Store — coming soon</span>
+  </div>
+  <p class="note">Free, with an optional one-time Pro upgrade. No subscription, no ads.</p>
+
+  <h2>It keeps playing when you put the phone down</h2>
+  <p>A metronome that stops the moment the screen locks is useless, so Steady runs
+     its click as a foreground media service: it keeps sounding while you are
+     looking at your score, with tempo and transport on the notification and the
+     lock screen. That is the only thing it does in the background, and it stops
+     when you stop it.</p>
+</div>
+<footer>
+  <a href="/steady-privacy">Privacy</a> ·
+  <a href="/">danielodea.com</a> ·
+  Made by Daniel O'Dea
+</footer>
+</main>
+</body>
+</html>
