@@ -95,12 +95,20 @@
   /* The ticks: the scrollbar's track, and the only part that is masked. The
      indicator must stay fully opaque at both ends of its travel — which is
      exactly where this fade reaches zero — so it is a sibling of the ticks
-     rather than a child of them. */
+     rather than a child of them.
+
+     Three gradients, one rhythm: a faint mark every 12px, a stronger one every
+     fifth and a long one every tenth, the way the app paints a tick per BPM.
+     All three must share the 12px grid's phase — every line centred on 6+12n —
+     so each layer's line sits at 30px within its own tile and only the tile
+     height decides how often it repeats. Centre the long mark at 60px instead
+     and it lands halfway between two faint ones, which does not read as a
+     heavier tick: it reads as a ruler whose marks are unevenly spaced. */
   .ruler .ticks {
     position:absolute; inset:0;
     background-repeat:repeat-y;
     background-image:
-      repeating-linear-gradient(to bottom, transparent 0 59.2px, rgba(var(--tick),1) 59.2px 60.8px, transparent 60.8px 120px),
+      repeating-linear-gradient(to bottom, transparent 0 29.2px, rgba(var(--tick),1) 29.2px 30.8px, transparent 30.8px 120px),
       repeating-linear-gradient(to bottom, transparent 0 29.35px, rgba(var(--tick),.6) 29.35px 30.65px, transparent 30.65px 60px),
       repeating-linear-gradient(to bottom, transparent 0 5.5px, rgba(var(--tick),.32) 5.5px 6.5px, transparent 6.5px 12px);
     background-size:26px 120px, 17px 60px, 9px 12px;
@@ -122,7 +130,13 @@
     -webkit-user-select:none; user-select:none;
   }
   .ruler .track:active { cursor:grabbing; }
-  .ruler .track:focus-visible { outline:2px solid var(--accent); outline-offset:-3px; border-radius:8px; }
+  /* The ring is for the keyboard alone. The script focuses the track on press so
+     the arrow keys work straight after a grab, and a programmatic focus() counts
+     as :focus-visible in some browsers — which drew an accent ring around the
+     scrollbar on every click. The modality is tracked in script instead, the ring
+     hangs off .kbfocus, and the UA's own ring is suppressed either way. */
+  .ruler .track:focus { outline:none; }
+  .ruler .track.kbfocus:focus { outline:2px solid var(--accent); outline-offset:-3px; border-radius:8px; }
   /* The indicator: the app's accent bar plus knob, hugging the tick side. Its
      translateY is the scroll position, written by the script; the 10px here is
      the script's PAD, so with JS off it rests at the top of the travel exactly
@@ -136,7 +150,7 @@
   .ruler .knob b { width:14px; height:14px; border-radius:50%; margin-top:-7px;
              background:linear-gradient(135deg,var(--accent),var(--accent2));
              box-shadow:0 0 0 2px var(--bg); transition:transform .12s ease; }
-  .ruler .track:hover .knob b, .ruler .track:focus-visible .knob b { transform:scale(1.15); }
+  .ruler .track:hover .knob b, .ruler .track.kbfocus .knob b { transform:scale(1.15); }
   /* On phone widths the column is the full width of the screen, so a ruler at
      the right edge could only sit on top of the text. It goes away, and the
      native scrollbar above stays, exactly as before. */
@@ -372,6 +386,8 @@
     <span class="beats" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
     <span class="links">
       <a href="/steady-privacy">Privacy</a><span class="sep">&middot;</span>
+      <a href="/steady-terms">Terms</a><span class="sep">&middot;</span>
+      <a href="/steady-refunds">Refunds</a><span class="sep">&middot;</span>
       <a href="/">danielodea.com</a>
     </span>
     <span class="made">Made by Daniel O'Dea</span>
@@ -397,6 +413,18 @@
   var PAD  = 10;   // matches the CSS resting offset; keeps the knob whole at both ends
   var LINE = 60;   // one arrow-key step, in px
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  // Focus modality. The ring belongs to the keyboard: the press handler below
+  // focuses the track so the arrow keys work straight after a grab, and a
+  // programmatic focus() satisfies :focus-visible in some browsers, which put an
+  // accent ring around the bar on every click. So the modality is tracked here
+  // and the ring hangs off .kbfocus. Both listeners are on the capture phase, so
+  // the flag is settled before the track's own handlers and the focus event run.
+  var kbd = false;
+  window.addEventListener('keydown', function (e) { if (e.key === 'Tab') kbd = true; }, true);
+  window.addEventListener('pointerdown', function () { kbd = false; }, true);
+  track.addEventListener('focus', function () { if (kbd) track.classList.add('kbfocus'); });
+  track.addEventListener('blur', function () { track.classList.remove('kbfocus'); });
 
   function maxScroll() {
     return Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
