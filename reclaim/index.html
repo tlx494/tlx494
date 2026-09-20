@@ -151,38 +151,96 @@
   .frame img { display:block; width:100%; height:auto; }
   figcaption { color:var(--dim); font-size:13.5px; margin-top:10px; max-width:70ch; }
 
-  /* --- the app's view picker, driving the shot below it -------------- */
+  /* --- the view picker ------------------------------------------------
+     It used to be a segmented control of three words above the shot, and
+     almost nobody pressed it: a row of labels does not read as "there are
+     two more pictures behind this". The choices are the pictures now, so
+     all three views are on the page whether or not anyone clicks. */
   .viewer input { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
-  .seg {
-    display:inline-flex; gap:2px; padding:2px; margin:0 0 16px;
-    background:var(--surfaceHigh); border:1px solid var(--hairline); border-radius:9px;
-  }
-  .seg label {
-    display:inline-flex; align-items:center; gap:7px; cursor:pointer;
-    padding:6px 13px; border-radius:7px; font-size:13px; font-weight:500;
-    color:var(--dim); border:1px solid transparent; white-space:nowrap;
-    transition:color .15s ease, background .15s ease;
-  }
-  .seg label:hover { color:var(--ink); }
-  .seg svg { width:13px; height:13px; flex:none; }
   .viewer .stage { display:grid; }
   .viewer .pane { grid-area:1/1; opacity:0; visibility:hidden; transition:opacity .22s ease; }
   #v-sun:checked  ~ .stage .p-sun,
   #v-tree:checked ~ .stage .p-tree,
   #v-both:checked ~ .stage .p-both { opacity:1; visibility:visible; }
-  #v-sun:checked  ~ .seg label[for=v-sun],
-  #v-tree:checked ~ .seg label[for=v-tree],
-  #v-both:checked ~ .seg label[for=v-both] {
-    background:var(--surface); color:var(--ink); border-color:var(--hairline);
-    box-shadow:0 1px 2px rgba(0,0,0,.08);
+
+  .pickhint { color:var(--dim); font-size:13.5px; margin:26px 0 10px; }
+  .thumbs { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:0; }
+  .thumbs label {
+    display:block; cursor:pointer; border-radius:12px; padding:8px;
+    border:1px solid transparent; background:transparent;
+    transition:background .16s ease, border-color .16s ease, transform .16s ease;
   }
-  #v-sun:focus-visible  ~ .seg label[for=v-sun],
-  #v-tree:focus-visible ~ .seg label[for=v-tree],
-  #v-both:focus-visible ~ .seg label[for=v-both] { outline:2px solid var(--accent); outline-offset:2px; }
+  .thumbs label:hover { background:var(--surfaceHigh); transform:translateY(-2px); }
+  .thumbs .tf {
+    display:block;   /* a <span> is inline, and aspect-ratio does nothing to one */
+    border:1px solid var(--hairline); border-radius:8px; overflow:hidden;
+    background:#0E1013; aspect-ratio:16/10;
+  }
+  .thumbs .tf img { display:block; width:100%; height:100%; object-fit:cover;
+    opacity:.55; transition:opacity .16s ease; }
+  .thumbs label:hover .tf img { opacity:.85; }
+  .thumbs b {
+    display:block; margin-top:9px; font-size:13px; font-weight:600; color:var(--dim);
+  }
+  .thumbs em { display:block; font-style:normal; font-size:12px; color:var(--dim); opacity:.75; }
+  #v-sun:checked  ~ .thumbs label[for=v-sun],
+  #v-tree:checked ~ .thumbs label[for=v-tree],
+  #v-both:checked ~ .thumbs label[for=v-both] {
+    background:var(--surface); border-color:var(--hairline); box-shadow:var(--shadow);
+  }
+  #v-sun:checked  ~ .thumbs label[for=v-sun] .tf img,
+  #v-tree:checked ~ .thumbs label[for=v-tree] .tf img,
+  #v-both:checked ~ .thumbs label[for=v-both] .tf img { opacity:1; }
+  #v-sun:checked  ~ .thumbs label[for=v-sun] .tf,
+  #v-tree:checked ~ .thumbs label[for=v-tree] .tf,
+  #v-both:checked ~ .thumbs label[for=v-both] .tf { border-color:var(--accent); }
+  #v-sun:checked  ~ .thumbs label[for=v-sun] b,
+  #v-tree:checked ~ .thumbs label[for=v-tree] b,
+  #v-both:checked ~ .thumbs label[for=v-both] b { color:var(--ink); }
+  #v-sun:focus-visible  ~ .thumbs label[for=v-sun],
+  #v-tree:focus-visible ~ .thumbs label[for=v-tree],
+  #v-both:focus-visible ~ .thumbs label[for=v-both] { outline:2px solid var(--accent); outline-offset:2px; }
+  @media (max-width:640px) { .thumbs { grid-template-columns:1fr; } }
+
+  /* --- cropped figures --------------------------------------------------
+     Every shot is the same 1600x1000 window, so three sections in a row
+     showing "the app" looked like the same picture three times. Each one
+     is cropped to the part its section is actually about, which also
+     gives the page three different shapes instead of one. */
+  .frame.crop {
+    position:relative; overflow:hidden;
+    aspect-ratio:calc(var(--w) / var(--h));
+  }
+  /* --x/--y/--w/--h are a rectangle in the shot's own 1600x1000 pixels, which
+     is the only way to aim a crop at a named piece of UI. object-fit:cover
+     cannot: it centres on a percentage of whatever is left over after the
+     scale, so the rectangle it lands on moves when the aspect ratio changes. */
+  .frame.crop img {
+    position:absolute; height:auto;
+    width: calc(100% * 1600 / var(--w));
+    left:  calc(-100% * var(--x) / var(--w));
+    top:   calc(-100% * var(--y) / var(--h));
+  }
+  figure.narrow { max-width:560px; margin-inline:auto; }
+  /* The whole bar is 12:1, which on a phone is a 32px hairline. Narrow screens
+     get its left half instead — the count and the running total, which is the
+     part the section is making a point about. */
+  /* !important because the rectangle lives in a style attribute, and an inline
+     declaration beats every selector without it. */
+  @media (max-width:640px) {
+    .frame.crop.bar {
+      --x:0 !important; --y:830 !important; --w:760 !important; --h:170 !important;
+    }
+  }
 
   /* --- the right rail's "Reclaimable" panel, as a page section ------- */
-  .split { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:34px; align-items:start; }
-  @media (max-width:860px) { .split { grid-template-columns:minmax(0,1fr); } }
+  .split { display:grid; grid-template-columns:300px minmax(0,1fr); gap:34px; align-items:start; }
+  @media (max-width:860px) {
+    .split { grid-template-columns:minmax(0,1fr); }
+    /* The rail crop is taller than it is wide, so letting it have the whole
+       column makes it 1100px of screenshot on a tablet. */
+    .split figure { max-width:320px; }
+  }
   .rail {
     background:var(--surface); border:1px solid var(--hairline); border-radius:16px;
     padding:6px 16px 14px; box-shadow:var(--shadow);
@@ -299,29 +357,20 @@
        when you want the shape and the areas together.</p>
 
     <div class="viewer">
-      <input type="radio" name="view" id="v-sun" checked>
+      <input type="radio" name="view" id="v-sun">
       <input type="radio" name="view" id="v-tree">
-      <input type="radio" name="view" id="v-both">
-
-      <div class="seg">
-        <label for="v-sun">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <circle cx="8" cy="8" r="6.2"/><circle cx="8" cy="8" r="2.4"/><path d="M8 1.8V5.6M14.2 8H10.4M5.6 13.3 7.2 9.9"/>
-          </svg>Sunburst</label>
-        <label for="v-tree">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <rect x="1.8" y="1.8" width="12.4" height="12.4" rx="1.6"/><path d="M9 1.8v12.4M9 7.4h5.2M1.8 10.4H9"/>
-          </svg>Treemap</label>
-        <label for="v-both">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <rect x="1.8" y="1.8" width="12.4" height="12.4" rx="1.6"/><path d="M8 1.8v12.4"/>
-          </svg>Both</label>
-      </div>
+      <input type="radio" name="view" id="v-both" checked>
 
       <div class="stage">
+        <figure class="pane p-both">
+          <div class="frame">
+            <img src="shots/both.webp" alt="Sunburst and treemap side by side, sharing a pointer" width="1600" height="1000">
+          </div>
+          <figcaption>Both at once, sharing a pointer — point at a folder in one and it lights up in the other.</figcaption>
+        </figure>
         <figure class="pane p-sun">
           <div class="frame">
-            <img src="shots/sunburst.webp" alt="Reclaim's sunburst view of a full disk, with a reclaimable list beside it" width="1600" height="1000">
+            <img src="shots/sunburst.webp" alt="Reclaim's sunburst view of a full disk, with a reclaimable list beside it" loading="lazy" width="1600" height="1000">
           </div>
           <figcaption>Every folder on the disk, read by shape. The ring is sized by what files actually occupy.</figcaption>
         </figure>
@@ -331,12 +380,22 @@
           </div>
           <figcaption>The same scan as a treemap, read by area.</figcaption>
         </figure>
-        <figure class="pane p-both">
-          <div class="frame">
-            <img src="shots/both.webp" alt="Sunburst and treemap side by side, sharing a pointer" loading="lazy" width="1600" height="1000">
-          </div>
-          <figcaption>Or both at once, sharing a pointer.</figcaption>
-        </figure>
+      </div>
+
+      <p class="pickhint">Three views of the same scan — pick one:</p>
+      <div class="thumbs">
+        <label for="v-both">
+          <span class="tf"><img src="shots/both.webp" alt="" loading="lazy" width="1600" height="1000"></span>
+          <b>Both</b><em>Shape and area together</em>
+        </label>
+        <label for="v-sun">
+          <span class="tf"><img src="shots/sunburst.webp" alt="" loading="lazy" width="1600" height="1000"></span>
+          <b>Sunburst only</b><em>Read the disk by shape</em>
+        </label>
+        <label for="v-tree">
+          <span class="tf"><img src="shots/treemap.webp" alt="" loading="lazy" width="1600" height="1000"></span>
+          <b>Treemap only</b><em>Read the disk by area</em>
+        </label>
       </div>
     </div>
   </div>
@@ -351,10 +410,10 @@
 
     <div class="split">
       <figure>
-        <div class="frame">
+        <div class="frame crop" style="--x:1253; --y:80; --w:347; --h:560">
           <img src="shots/reclaimable.webp" alt="The reclaimable list, grouped by category with sizes" loading="lazy" width="1600" height="1000">
         </div>
-        <figcaption>What is safe to remove, and what each one costs you.</figcaption>
+        <figcaption>The list as it appears beside the map.</figcaption>
       </figure>
 
       <div class="rail">
@@ -380,7 +439,7 @@
             <span class="w">Useful only while chasing a problem you know about.</span></span></li>
         </ul>
         <p class="tail">Plus the developer ones, when you have them: Xcode archives and build output,
-           iOS device support, simulator data, package caches and <code>node_modules</code>.</p>
+           iOS device support, simulator data, package caches and installed dependencies.</p>
       </div>
     </div>
   </div>
@@ -392,10 +451,11 @@
     <h2>As deep as you want to look</h2>
     <p class="prose">Up to twelve rings, scrolled with the trackpad. Drill into a wedge and the
        whole map reframes around it.</p>
-    <figure>
-      <div class="frame">
+    <figure class="narrow">
+      <div class="frame crop" style="--x:150; --y:150; --w:990; --h:760">
         <img src="shots/layers.webp" alt="The sunburst drawn twelve rings deep" loading="lazy" width="1600" height="1000">
       </div>
+      <figcaption>Twelve rings deep, with the layer count on the left.</figcaption>
     </figure>
   </div>
 </section>
@@ -408,9 +468,10 @@
        running total, and nothing leaves until you confirm it — then it goes to the Trash, not
        into thin air.</p>
     <figure>
-      <div class="frame">
+      <div class="frame crop bar" style="--x:0; --y:868; --w:1600; --h:132">
         <img src="shots/marked.webp" alt="Items marked for removal listed along the bottom of the window" loading="lazy" width="1600" height="1000">
       </div>
+      <figcaption>The bar along the bottom, with a running total and nothing gone yet.</figcaption>
     </figure>
   </div>
 </section>
@@ -428,10 +489,10 @@
         <h3>Mac App Store</h3>
         <p class="readout"><span class="val">Free</span><span class="unit">&middot; Pro US$9.99, once</span></p>
         <ul class="pro">
-          <li>Every <code>node_modules</code> on the disk</li>
           <li>Large files you haven't opened in a year</li>
           <li>External and network volumes</li>
           <li>Compare against a previous scan</li>
+          <li>Leftovers from developer projects</li>
         </ul>
         <span class="btn pending">Coming soon</span>
         <p class="note">Pro is an in-app purchase. Updates through the App Store. Sandboxed, so macOS keeps Mail, Safari
@@ -441,10 +502,10 @@
         <h3>Direct download</h3>
         <p class="readout"><span class="val">Free</span><span class="unit">&middot; Pro US$9.99, once</span></p>
         <ul class="pro">
-          <li>Every <code>node_modules</code> on the disk</li>
           <li>Large files you haven't opened in a year</li>
           <li>External and network volumes</li>
           <li>Compare against a previous scan</li>
+          <li>Leftovers from developer projects</li>
         </ul>
         <span class="btn pending">Coming soon</span>
         <p class="note">Pro is a licence key, emailed to you. Can be granted Full Disk Access, so it measures Mail, Safari and Time
