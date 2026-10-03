@@ -15,7 +15,7 @@ const APPS: AppCard[] = [
   {
     href: "/steady/",
     name: "Steady",
-    blurb: "A calm metronome and tuner for Android.",
+    blurb: "A calm metronome and tuner for iPhone and Android.",
     thumb: "/apps/steady.webp",
   },
   {
