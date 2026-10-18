@@ -4,7 +4,9 @@ import { galleryEdges, GalleryEdges } from "./galleryEdges";
 type AppCard = { href: string; name: string; blurb: string; thumb: string; external?: boolean };
 
 // Reclaim and Steady are static pages served from this same origin, so they are
-// ordinary navigations. PianoRoom lives on its own domain.
+// ordinary navigations. Down the Line is served on this origin too, by a
+// Cloudflare Worker routed at /down-the-line (its builds sit behind a password).
+// PianoRoom lives on its own domain.
 const APPS: AppCard[] = [
   {
     href: "/reclaim/",
@@ -17,6 +19,12 @@ const APPS: AppCard[] = [
     name: "Steady",
     blurb: "A calm metronome and tuner for iPhone and Android.",
     thumb: "/apps/steady.webp",
+  },
+  {
+    href: "/down-the-line/",
+    name: "Down the Line",
+    blurb: "Co-op horror on a steam train across the outback at night.",
+    thumb: "/apps/downtheline.webp",
   },
   {
     href: "https://pianoroom.live",
