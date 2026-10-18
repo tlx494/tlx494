@@ -8,6 +8,8 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
 
+import { createBallCollider } from './ballCollisions';
+
 const LINKEDIN_URL = 'https://www.linkedin.com/in/daniel-odea/';
 
 // dial back the most expensive effects on weak / old machines
@@ -25,6 +27,8 @@ const GROUND_FRICTION = 0.86;
 const SMASH_SPEED = 2.2; // downward speed needed to crash through a rooftop
 const MAX_BALLS = 220;
 const BALLS_PER_CLICK = 6;
+// ball-ball solver passes per frame; a second pass settles piles better
+const COLLISION_ITERATIONS = isLowEndDevice ? 1 : 2;
 // a curated neon palette (harmonises with the scene instead of random rainbow)
 const BALL_COLORS = ['#ff2e7e', '#ffd000', '#19f0ff', '#9b5cff', '#ff7a18', '#3dffa6', '#ff4fd8', '#4d7bff'];
 
@@ -120,7 +124,8 @@ var frameCount = 0;
 // bouncy ball physics state
 var balls = [];
 var buildings = []; // collidable building "containers"
-var ballGeo;
+var ballMesh; // every ball is one instance of a single mesh: one draw call per render pass
+var ballCollider;
 var groundMesh;
 var tallestTop = 4; // height of the tallest rooftop — balls drop from about here
 
@@ -297,7 +302,8 @@ function mathRandom(num = 8) {
 
 function init() {
 
-  ballGeo = new THREE.SphereGeometry(BALL_R, 12, 12);
+  createBallMesh();
+  ballCollider = createBallCollider(MAX_BALLS, BALL_R, RESTITUTION);
 
   var segments = 2;
   for (var i = 1; i<100; i++) {
@@ -696,36 +702,54 @@ function onPointerClick(event) {
   }
 }
 
+function createBallMesh() {
+  // metallic neon: a fully-metal surface reflects the city's cube map (so it won't blow
+  // out to white under the bright ambient light), tinted by the ball's colour, with a
+  // touch of self-emission so the hue always reads. Reuses the orb's existing env map —
+  // cheap, no per-ball glow/bloom pass.
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.4,
+    roughness: 0.18,
+    metalness: 1,
+    envMap: cubeRenderTarget ? cubeRenderTarget.texture : null,
+    envMapIntensity: 1.6,
+  });
+  // instance colours only tint the diffuse colour out of the box; tint the glow too
+  // (the fragment shader sees instance colours as USE_COLOR, not USE_INSTANCING_COLOR)
+  mat.onBeforeCompile = function (shader) {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <emissivemap_fragment>',
+      '#include <emissivemap_fragment>\n#ifdef USE_COLOR\n  totalEmissiveRadiance *= vColor;\n#endif'
+    );
+  };
+
+  ballMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(BALL_R, 12, 12), mat, MAX_BALLS);
+  ballMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  ballMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(MAX_BALLS * 3), 3);
+  const identity = new THREE.Matrix4();
+  for (let i = 0; i < MAX_BALLS; i++) ballMesh.setMatrixAt(i, identity);
+  ballMesh.count = 0;
+  ballMesh.castShadow = true;
+  // the bounding sphere is one ball at the origin; balls are everywhere, so never cull
+  ballMesh.frustumCulled = false;
+  scene.add(ballMesh);
+}
+
 function spawnBalls(x, z, count) {
   // drop in from roughly the height of the tallest building
   const dropY = tallestTop;
   for (let i = 0; i < count; i++) {
     if (balls.length >= MAX_BALLS) {
       const old = balls.shift();
-      scene.remove(old.mesh);
       if (old.home) {
         const idx = old.home.contained.indexOf(old);
         if (idx >= 0) old.home.contained.splice(idx, 1);
       }
     }
-    const color = new THREE.Color(BALL_COLORS[Math.floor(Math.random() * BALL_COLORS.length)]);
-    // metallic neon: a fully-metal surface reflects the city's cube map (so it won't blow
-    // out to white under the bright ambient light), tinted by the ball's colour, with a
-    // touch of self-emission so the hue always reads. Reuses the orb's existing env map —
-    // cheap, no per-ball glow/bloom pass.
-    const mat = new THREE.MeshStandardMaterial({
-      color: color,
-      emissive: color,
-      emissiveIntensity: 0.4,
-      roughness: 0.18,
-      metalness: 1,
-      envMap: cubeRenderTarget ? cubeRenderTarget.texture : null,
-      envMapIntensity: 1.6,
-    });
-    const mesh = new THREE.Mesh(ballGeo, mat);
-    mesh.castShadow = true;
     const ball = {
-      mesh: mesh,
+      color: new THREE.Color(BALL_COLORS[Math.floor(Math.random() * BALL_COLORS.length)]),
       pos: new THREE.Vector3(
         x + (Math.random() - 0.5) * 0.7,
         dropY + Math.random() * 0.5,
@@ -735,10 +759,11 @@ function spawnBalls(x, z, count) {
       prevY: dropY,
       home: null,
     };
-    mesh.position.copy(ball.pos);
-    scene.add(mesh);
     balls.push(ball);
   }
+  // instance i is balls[i]; dropping the oldest shifts everyone down a slot
+  for (let i = 0; i < balls.length; i++) ballMesh.setColorAt(i, balls[i].color);
+  ballMesh.instanceColor.needsUpdate = true;
 }
 
 function inFootprint(b, B) {
@@ -826,30 +851,6 @@ function collideFree(b) {
   if (sideB) pushOutOfBox(b, sideB);
 }
 
-function resolveBallBall(list) {
-  const min = BALL_R * 2;
-  for (let i = 0; i < list.length; i++) {
-    for (let j = i + 1; j < list.length; j++) {
-      const a = list[i], c = list[j];
-      const dx = c.pos.x - a.pos.x, dy = c.pos.y - a.pos.y, dz = c.pos.z - a.pos.z;
-      const d2 = dx * dx + dy * dy + dz * dz;
-      if (d2 < min * min && d2 > 1e-6) {
-        const d = Math.sqrt(d2);
-        const nx = dx / d, ny = dy / d, nz = dz / d;
-        const pen = (min - d) * 0.5;
-        a.pos.x -= nx * pen; a.pos.y -= ny * pen; a.pos.z -= nz * pen;
-        c.pos.x += nx * pen; c.pos.y += ny * pen; c.pos.z += nz * pen;
-        const vn = (c.vel.x - a.vel.x) * nx + (c.vel.y - a.vel.y) * ny + (c.vel.z - a.vel.z) * nz;
-        if (vn < 0) {
-          const imp = -(1 + RESTITUTION) * vn * 0.5;
-          a.vel.x -= imp * nx; a.vel.y -= imp * ny; a.vel.z -= imp * nz;
-          c.vel.x += imp * nx; c.vel.y += imp * ny; c.vel.z += imp * nz;
-        }
-      }
-    }
-  }
-}
-
 function popBuilding(B) {
   B.popped = true;
   town.remove(B.mesh);
@@ -874,7 +875,15 @@ function updatePhysics(dt) {
     b.pos.x += b.vel.x * dt;
     b.pos.y += b.vel.y * dt;
     b.pos.z += b.vel.z * dt;
+  }
 
+  // balls knock into each other first, so the walls, roofs and ground below get the
+  // last word and nothing is shoved through a building or under the street
+  ballCollider.resolve(balls, COLLISION_ITERATIONS);
+
+  const m = ballMesh.instanceMatrix.array;
+  for (let i = 0; i < balls.length; i++) {
+    const b = balls[i];
     if (b.home && !b.home.popped) {
       confineToBuilding(b, b.home);
     } else {
@@ -891,15 +900,18 @@ function updatePhysics(dt) {
       if (Math.abs(b.vel.y) < 0.35) b.vel.y = 0;
     }
 
-    b.mesh.position.copy(b.pos);
+    // instance matrices are pure translations: write just the translation column
+    m[i * 16 + 12] = b.pos.x;
+    m[i * 16 + 13] = b.pos.y;
+    m[i * 16 + 14] = b.pos.z;
   }
+  ballMesh.count = balls.length;
+  ballMesh.instanceMatrix.needsUpdate = true;
 
-  // settle stacks inside each building, and burst the full ones
+  // burst the full buildings
   for (let i = 0; i < buildings.length; i++) {
     const B = buildings[i];
-    if (B.popped) continue;
-    if (B.contained.length > 1) resolveBallBall(B.contained);
-    if (B.contained.length >= B.capacity) popBuilding(B);
+    if (!B.popped && B.contained.length >= B.capacity) popBuilding(B);
   }
 }
 
