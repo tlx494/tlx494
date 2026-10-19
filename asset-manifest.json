@@ -1,16 +1,16 @@
 {
   "files": {
-    "main.css": "/static/css/main.349d00d1.css",
-    "main.js": "/static/js/main.7364ef54.js",
+    "main.css": "/static/css/main.a2d3e760.css",
+    "main.js": "/static/js/main.2b8d1f2f.js",
     "static/js/787.986b29db.chunk.js": "/static/js/787.986b29db.chunk.js",
     "static/media/dune_rise.otf": "/static/media/dune_rise.364c68a41cdafe1da287.otf",
     "index.html": "/index.html",
-    "main.349d00d1.css.map": "/static/css/main.349d00d1.css.map",
-    "main.7364ef54.js.map": "/static/js/main.7364ef54.js.map",
+    "main.a2d3e760.css.map": "/static/css/main.a2d3e760.css.map",
+    "main.2b8d1f2f.js.map": "/static/js/main.2b8d1f2f.js.map",
     "787.986b29db.chunk.js.map": "/static/js/787.986b29db.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.349d00d1.css",
-    "static/js/main.7364ef54.js"
+    "static/css/main.a2d3e760.css",
+    "static/js/main.2b8d1f2f.js"
   ]
 }
