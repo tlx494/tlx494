@@ -165,7 +165,11 @@ body {
    when they fit, auto margins on the end cards centre them and nothing hints
    at scrolling. */
 .gallery {
-  margin: 2.1rem 0 0;
+  /* wider than the hero's 940px, so all the cards show on a desktop and the
+     row only scrolls when the window is genuinely narrow (Daniel, 2026-10-19) */
+  --gallery-w: min(calc(100vw - 32px), 1200px);
+  width: var(--gallery-w);
+  margin: 2.1rem 0 0 calc(50% - var(--gallery-w) / 2);
   pointer-events: none;
 }
 .gallery-label {
