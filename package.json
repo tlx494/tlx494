@@ -32,6 +32,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:steady": "node --test tests/steady/",
+    "build:steady": "node tools/build-steady-pages.mjs",
     "eject": "react-scripts eject",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build"
