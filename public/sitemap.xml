@@ -143,4 +143,9 @@
     <priority>0.6</priority>
   </url>
   <!-- steady-web:end -->
+  <url><loc>https://danielodea.com/just-fits/</loc></url>
+  <url><loc>https://danielodea.com/just-fits-privacy/</loc></url>
+  <url><loc>https://danielodea.com/just-fits-terms/</loc></url>
+  <url><loc>https://danielodea.com/just-fits-refunds/</loc></url>
+  <url><loc>https://danielodea.com/just-fits-support/</loc></url>
 </urlset>
