@@ -3,7 +3,7 @@ import { galleryEdges, GalleryEdges } from "./galleryEdges";
 
 type AppCard = { href: string; name: string; blurb: string; thumb: string; external?: boolean };
 
-// Reclaim and Steady are static pages served from this same origin, so they are
+// Reclaim, Steady and Just Fits are static pages served from this same origin, so they are
 // ordinary navigations. Down the Line is served on this origin too, by a
 // Cloudflare Worker routed at /down-the-line (its builds sit behind a password).
 // PianoRoom lives on its own domain.
@@ -19,6 +19,12 @@ const APPS: AppCard[] = [
     name: "Steady",
     blurb: "A calm metronome and tuner for iPhone and Android.",
     thumb: "/apps/steady.webp",
+  },
+  {
+    href: "/just-fits/",
+    name: "Just Fits",
+    blurb: "Grow a shape, let go, fit the hole. Coming soon.",
+    thumb: "/apps/justfits.webp",
   },
   {
     href: "/down-the-line/",
