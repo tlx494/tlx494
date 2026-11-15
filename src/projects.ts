@@ -18,17 +18,18 @@ export const SECTIONS: Section[] = [
     id: "games",
     title: "Games",
     cards: [
-      {
-        href: "/just-fits/",
-        name: "Just Fits",
-        blurb: "Grow a shape, let go, fit the hole. Coming soon.",
-        thumb: "/apps/justfits.webp",
-      },
+      // Down the Line first: the bigger, longer game (Daniel, 2026-11-15).
       {
         href: "/down-the-line/",
         name: "Down the Line",
         blurb: "Co-op horror on a steam train across the outback at night.",
         thumb: "/apps/downtheline.webp",
+      },
+      {
+        href: "/just-fits/",
+        name: "Just Fits",
+        blurb: "Grow a shape, let go, fit the hole. Coming soon.",
+        thumb: "/apps/justfits.webp",
       },
     ],
   },
