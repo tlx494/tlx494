@@ -1,10 +1,12 @@
 export type ProjectCard = { href: string; name: string; blurb: string; thumb: string; external?: boolean };
 export type Section = { id: string; title: string; cards: ProjectCard[] };
 
-// OPEN QUESTION FOR DANIEL: this profile URL carries his personal handle, which
-// the public-identity rule keeps off the site. It has been linked from the hero
-// ("pianist", "composer") since before that rule, and his own LinkedIn links the
-// same profile. Changing it here changes every MuseScore link on the homepage.
+// This profile URL carries his personal handle, which the public-identity
+// rule otherwise keeps off the site. Daniel accepted it here on 15 November
+// 2026 ("musescore link being personal handle is OK ish"): it has been linked
+// from the hero since before that rule, and his LinkedIn links the same profile.
+// Swap in a handle-free address if MuseScore offers one. Changing it here
+// changes every MuseScore link on the homepage.
 export const MUSESCORE_URL = "https://musescore.com/tlx494";
 
 // Reclaim, Steady, Just Fits and Talks are static pages served from this same
