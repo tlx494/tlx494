@@ -214,17 +214,26 @@ html body {
   max-width: 100%;
   pointer-events: auto;
 }
+/* Section headings ("Games"). The city behind changes colour with the
+   pointer, from dark red to bright orange, so the label carries its own dark
+   ground: readable on any of them (Daniel, 2026-11-15: "aren't readable"). */
 .gallery-label {
-  margin: 0 0 0.75rem 2px;
+  display: block;
+  width: fit-content;
+  margin: 0 0 0.7rem;
+  padding: 0.34rem 0.8rem 0.34rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(14, 8, 10, 0.62);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
   font-family: 'Space Grotesk', 'Montserrat', sans-serif;
-  font-weight: 400;
-  font-size: 0.64rem;
-  line-height: 1.4;
-  letter-spacing: 0.34em;
+  font-weight: 600;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  letter-spacing: 0.22em;
   text-align: left;
   text-transform: uppercase;
-  color: rgba(247, 245, 239, 0.42);
-  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.5);
+  color: #fff7e8;
 }
 .gallery-grid {
   display: grid;
