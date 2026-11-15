@@ -82,6 +82,27 @@ html body {
   text-shadow: 0 1px 12px rgba(0, 0, 0, 0.5);
 }
 
+/* The name with the LinkedIn orb to its right. The pair is centred, so the
+   name itself sits a little left of centre (Daniel, 2026-11-15). */
+.name-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(10px, 2.4vw, 30px);
+}
+/* Empty box the 3D orb is drawn into; clicks pass through to the city, which
+   opens LinkedIn when the orb is hit. */
+/* Two fixed lines, and a box only as wide as the longer one, so the orb sits
+   right beside the letters instead of beside an empty margin. */
+.name-wrap .name { width: max-content; max-width: 100%; }
+.name-wrap .name > span { display: block; white-space: nowrap; }
+.orb-slot {
+  flex: 0 0 auto;
+  width: clamp(44px, 8.4vw, 104px);
+  aspect-ratio: 1;
+  pointer-events: none;
+}
+
 .name {
   margin: 0;
   font-family: 'Dune', 'Montserrat', sans-serif;

@@ -9,6 +9,7 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
 
 import { createBallCollider } from './ballCollisions';
+import { orbPlacement } from './orbPlacement';
 
 const LINKEDIN_URL = 'https://www.linkedin.com/in/daniel-odea/';
 
@@ -32,8 +33,11 @@ const COLLISION_ITERATIONS = isLowEndDevice ? 1 : 2;
 // a curated neon palette (harmonises with the scene instead of random rainbow)
 const BALL_COLORS = ['#ff2e7e', '#ffd000', '#19f0ff', '#9b5cff', '#ff7a18', '#3dffa6', '#ff4fd8', '#4d7bff'];
 
-// the LinkedIn orb sits low-centre of the view (child of the camera)
+// the LinkedIn orb is a child of the camera; the page places it (see moveSphere).
+// ORB_Y is only the fallback height when the page offers no slot.
 const ORB_Y = -0.95;
+const ORB_DISTANCE = 5;
+const ORB_RADIUS = 0.16;
 
 const colors = [
   {
@@ -573,8 +577,8 @@ var createSpheres = function() {
     metalness: 1
   });
   
-  sphere1 = new THREE.Mesh(new THREE.IcosahedronGeometry(0.16, 8), sphereMaterial);
-  sphere1.position.set(0, ORB_Y, -5);
+  sphere1 = new THREE.Mesh(new THREE.IcosahedronGeometry(ORB_RADIUS, 8), sphereMaterial);
+  sphere1.position.set(0, ORB_Y, -ORB_DISTANCE);
   sphere1.layers.enable(BLOOM_SCENE);
   camera.add(sphere1);
   sphere1.add(cubeCamera);
@@ -630,9 +634,24 @@ function onMouseWheel(e) {
   // }
 }
 
+// The orb follows an empty slot the page lays out beside the name, so it
+// sits wherever the layout puts that slot and scrolls with the page. With no
+// slot it falls back to its old place, low in the middle of the view.
 function moveSphere() {
-  const currentTime = elapsedTime * 2.5;
-  sphere1.position.y = ORB_Y + Math.sin(currentTime) * 0.005;
+  const bob = Math.sin(elapsedTime * 2.5) * 0.005;
+  const slot = document.getElementById('orb-slot');
+  const place = orbPlacement(
+    slot ? slot.getBoundingClientRect() : null,
+    { width: window.innerWidth, height: window.innerHeight },
+    { fovDeg: camera.fov, distance: ORB_DISTANCE, radius: ORB_RADIUS }
+  );
+  if (!place) {
+    sphere1.position.set(0, ORB_Y + bob, -ORB_DISTANCE);
+    sphere1.scale.setScalar(1);
+    return;
+  }
+  sphere1.position.set(place.x, place.y + bob * place.scale, -ORB_DISTANCE);
+  sphere1.scale.setScalar(place.scale);
 }
 
 var animate = function() {

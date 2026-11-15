@@ -40,7 +40,12 @@ function App() {
       <div className="overlay">
         <div className="hero">
           <div className="name-wrap rise d2">
-            <h1 className="name">DANIEL O'DEA</h1>
+            <h1 className="name">
+              <span>DANIEL</span> <span>O'DEA</span>
+            </h1>
+            {/* The 3D LinkedIn orb is drawn here: city3d.ts reads this slot's
+                place on screen every frame. Empty on purpose. */}
+            <span id="orb-slot" className="orb-slot" aria-hidden="true" />
           </div>
           <div className="rule rise" />
           <p className="creds rise d4">
