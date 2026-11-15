@@ -2,9 +2,8 @@ import React, { useEffect, useRef } from "react";
 import AppGallery from "./AppGallery";
 import CssBaseline from "@mui/material/CssBaseline";
 import StartThreeJS from "./city3d";
+import { MUSESCORE_URL } from "./projects";
 import "./overlay.css";
-
-const MUSESCORE_URL = "https://musescore.com/tlx494";
 
 const Sep = () => <span className="sep">·</span>;
 

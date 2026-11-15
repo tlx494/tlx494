@@ -36,15 +36,25 @@
   background: linear-gradient(to top, rgba(var(--night), 0.55), transparent);
 }
 
-body {
+/* MUI's CssBaseline paints body white; the page now scrolls, so overscroll
+   (iOS rubber band) would flash it. Keep it night. */
+html body {
+  background-color: #000;
   cursor: crosshair;
 }
 
-/* --- overlay shell: clicks pass straight through to the city --- */
+/* --- overlay shell: clicks pass straight through to the city ---
+   The city is fixed behind; the overlay is in normal flow so the page scrolls
+   when the project grid is taller than the screen. The bottom padding lets the
+   grid scroll clear of the LinkedIn orb (fixed at ~79% of the viewport height),
+   so the orb is always reachable. */
 .overlay {
-  position: fixed;
-  inset: 0;
+  position: relative;
   z-index: 2;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding-bottom: 28vh;
+  overflow-x: clip;
   pointer-events: none;
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
@@ -54,10 +64,8 @@ body {
 }
 
 .hero {
-  position: absolute;
-  top: 13%;
-  left: 50%;
-  transform: translateX(-50%);
+  margin: 0 auto;
+  padding-top: 13vh;
   width: min(calc(100vw - 32px), 940px);
   text-align: center;
 }
@@ -159,71 +167,55 @@ body {
   opacity: 0.7;
 }
 
-/* --- the apps: a row of cards under the identity ---
-   Quieter than .creds (small dim label, glass cards) so it never competes with
-   the name. The row scrolls sideways only when the cards genuinely overflow;
-   when they fit, auto margins on the end cards centre them and nothing hints
-   at scrolling. */
+/* --- the projects: a grid of cards, grouped under quiet section labels ---
+   Quieter than .creds (small dim labels, glass cards) so it never competes with
+   the name. Sections sit side by side and wrap as whole groups, centred; the
+   gap between sections is wider than the gap between cards so the grouping
+   reads at a glance. --n (set inline) is the section's card count. */
 .gallery {
-  /* wider than the hero's 940px, so all the cards show on a desktop and the
-     row only scrolls when the window is genuinely narrow (Daniel, 2026-10-19) */
-  --gallery-w: min(calc(100vw - 32px), 1360px);
+  /* wider than the hero's 940px, breaking out of it to centre on the page */
+  --gallery-w: min(calc(100vw - 32px), 1180px);
+  --gap: 16px;
+  --section-gap: 40px;
+  /* four cards (two sections) per row on a desktop, never narrower than 200px */
+  --card-w: clamp(200px, calc((var(--gallery-w) - 2 * var(--gap) - var(--section-gap)) / 4), 260px);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  column-gap: var(--section-gap);
+  row-gap: 28px;
   width: var(--gallery-w);
   margin: 2.1rem 0 0 calc(50% - var(--gallery-w) / 2);
   pointer-events: none;
 }
+.gallery-section {
+  width: calc(var(--n) * var(--card-w) + (var(--n) - 1) * var(--gap));
+  max-width: 100%;
+  pointer-events: auto;
+}
 .gallery-label {
-  margin: 0 0 0.85rem;
+  margin: 0 0 0.75rem 2px;
   font-family: 'Space Grotesk', 'Montserrat', sans-serif;
+  font-weight: 400;
   font-size: 0.64rem;
+  line-height: 1.4;
   letter-spacing: 0.34em;
+  text-align: left;
   text-transform: uppercase;
   color: rgba(247, 245, 239, 0.42);
   text-shadow: 0 1px 12px rgba(0, 0, 0, 0.5);
 }
-.gallery-row {
-  --fade: 28px;
-  display: flex;
-  gap: 16px;
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+  gap: var(--gap);
   margin: 0;
-  padding: 4px 2px 10px;
+  padding: 0;
   list-style: none;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-snap-type: x mandatory;
-  scroll-padding-inline: 2px;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  pointer-events: auto;
-  touch-action: pan-x pan-y;
-}
-.gallery-row::-webkit-scrollbar { display: none; }
-.gallery-row:focus-visible {
-  outline: 2px solid var(--gold);
-  outline-offset: 4px;
-  border-radius: 16px;
-}
-/* edge fades only while there is more in that direction */
-.gallery-row[data-more-right='true'] {
-  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--fade)), transparent);
-  mask-image: linear-gradient(to right, #000 calc(100% - var(--fade)), transparent);
-}
-.gallery-row[data-more-left='true'] {
-  -webkit-mask-image: linear-gradient(to left, #000 calc(100% - var(--fade)), transparent);
-  mask-image: linear-gradient(to left, #000 calc(100% - var(--fade)), transparent);
-}
-.gallery-row[data-more-left='true'][data-more-right='true'] {
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent);
-  mask-image: linear-gradient(to right, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent);
 }
 .gallery-item {
-  flex: 0 0 auto;
-  /* 256px: five cards and their gaps fit a 1440px desktop without scrolling */
-  width: min(256px, 74vw);
-  scroll-snap-align: start;
+  min-width: 0;
 }
-.gallery-item:first-child { margin-left: auto; }
-.gallery-item:last-child { margin-right: auto; }
 
 .card {
   display: block;
@@ -330,13 +322,13 @@ body {
   border-radius: 2px;
 }
 
-/* quiet utility cue, bottom-right corner */
+/* quiet utility cue, centred under the grid (in flow: a fixed corner cue
+   would sit over the cards as the page scrolls) */
 .cue {
-  position: absolute;
-  right: 2.6%;
-  bottom: 3.6%;
-  display: inline-flex;
+  display: flex;
+  justify-content: center;
   align-items: center;
+  margin-top: 2.4rem;
   gap: 0.7em;
   font-family: 'Montserrat', sans-serif;
   font-weight: 500;
@@ -395,16 +387,18 @@ body {
 /* The LinkedIn orb sits in the scene at roughly 79% of the viewport height,
    so on laptop-height screens the whole stack is scaled to finish above it. */
 @media (max-height: 920px) {
-  .hero { top: 7%; }
+  .hero { padding-top: 7vh; }
   .name { font-size: min(clamp(2.5rem, 8.6vw, 6.1rem), 10.5vh); }
   .rule { margin: 1.1rem auto 1rem; }
   .gallery { margin-top: 1.4rem; }
-  .gallery-item { width: min(248px, 74vw); }
 }
 
+/* phones: one column, every card full width */
 @media (max-width: 560px) {
-  .hero { top: 14%; }
-  .gallery { margin-top: 1.6rem; }
+  .hero { padding-top: 14vh; }
+  .gallery { margin-top: 1.6rem; row-gap: 24px; }
+  .gallery-section { width: 100%; }
+  .gallery-grid { grid-template-columns: minmax(0, 1fr); }
   .br-narrow { display: inline; }
   .sep-wide { display: none; }
   .cue { letter-spacing: 0.26em; font-size: 0.6rem; }
@@ -412,13 +406,11 @@ body {
 
 /* short landscape screens: pull everything up so the cards stay on screen */
 @media (max-height: 620px) {
-  .hero { top: 4%; }
+  .hero { padding-top: 4vh; }
   .name { font-size: clamp(1.8rem, 9vh, 3.4rem); }
   .rule { margin: 0.7rem auto 0.6rem; }
   .creds { font-size: 0.85rem; }
   .gallery { margin-top: 0.9rem; }
-  .gallery-label { display: none; }
-  .gallery-item { width: min(220px, 40vw); }
   .card-text { padding: 0.5rem 0.75rem 0.6rem; }
   .card-name { font-size: 0.85rem; }
   .card-blurb { font-size: 0.68rem; }
