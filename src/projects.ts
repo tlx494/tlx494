@@ -7,7 +7,9 @@ export type Section = { id: string; title: string; cards: ProjectCard[] };
 // from the hero since before that rule, and his LinkedIn links the same profile.
 // Swap in a handle-free address if MuseScore offers one. Changing it here
 // changes every MuseScore link on the homepage.
-export const MUSESCORE_URL = "https://musescore.com/tlx494";
+// Numeric profile URL: survives username changes and keeps the personal
+// handle off the page (musescore.com may still redirect to it).
+export const MUSESCORE_URL = "https://musescore.com/user/3321261";
 
 // Reclaim, Steady, Just Fits and Talks are static pages served from this same
 // origin, so they are ordinary navigations. Down the Line is served on this

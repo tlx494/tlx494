@@ -27,6 +27,8 @@ test("talks is one card that leads to the talks page", () => {
 test("music has a MuseScore compositions card", () => {
   const music = SECTIONS.find((s) => s.title === "Music")!;
   expect(music.cards.some((c) => c.href === MUSESCORE_URL)).toBe(true);
+  // Never the personal handle on the public site.
+  expect(MUSESCORE_URL).not.toContain("tlx494");
 });
 
 test("each project appears once", () => {
