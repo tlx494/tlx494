@@ -9,8 +9,8 @@ const WORKER_PATHS = ["/down-the-line/"];
 
 const allCards = SECTIONS.flatMap((s) => s.cards);
 
-test("sections come in Daniel's order: games, music, apps, talks", () => {
-  expect(SECTIONS.map((s) => s.title)).toEqual(["Games", "Music", "Apps", "Talks"]);
+test("sections come in Daniel's order: apps, music, games, talks", () => {
+  expect(SECTIONS.map((s) => s.title)).toEqual(["Apps", "Music", "Games", "Talks"]);
 });
 
 test("every section has at least one card and a unique id", () => {

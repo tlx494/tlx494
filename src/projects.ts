@@ -17,21 +17,20 @@ export const MUSESCORE_URL = "https://musescore.com/user/3321261";
 // behind a password). PianoRoom and MuseScore live on their own domains.
 export const SECTIONS: Section[] = [
   {
-    id: "games",
-    title: "Games",
+    id: "apps",
+    title: "Apps",
     cards: [
-      // Down the Line first: the bigger, longer game (Daniel, 2026-11-15).
       {
-        href: "/down-the-line/",
-        name: "Down the Line",
-        blurb: "Co-op horror on a steam train across the outback at night.",
-        thumb: "/apps/downtheline.webp",
+        href: "/steady/",
+        name: "Steady",
+        blurb: "A calm metronome and tuner for iPhone and Android.",
+        thumb: "/apps/steady.webp",
       },
       {
-        href: "/just-fits/",
-        name: "Just Fits",
-        blurb: "Grow a shape, let go, fit the hole. Coming soon.",
-        thumb: "/apps/justfits.webp",
+        href: "/reclaim/",
+        name: "Reclaim Disk Space",
+        blurb: "See what is filling your Mac, and clear it safely.",
+        thumb: "/apps/reclaim.webp",
       },
     ],
   },
@@ -56,20 +55,21 @@ export const SECTIONS: Section[] = [
     ],
   },
   {
-    id: "apps",
-    title: "Apps",
+    id: "games",
+    title: "Games",
     cards: [
+      // Down the Line first: the bigger, longer game (Daniel, 2026-11-15).
       {
-        href: "/steady/",
-        name: "Steady",
-        blurb: "A calm metronome and tuner for iPhone and Android.",
-        thumb: "/apps/steady.webp",
+        href: "/down-the-line/",
+        name: "Down the Line",
+        blurb: "Co-op horror on a steam train across the outback at night.",
+        thumb: "/apps/downtheline.webp",
       },
       {
-        href: "/reclaim/",
-        name: "Reclaim Disk Space",
-        blurb: "See what is filling your Mac, and clear it safely.",
-        thumb: "/apps/reclaim.webp",
+        href: "/just-fits/",
+        name: "Just Fits",
+        blurb: "Grow a shape, let go, fit the hole. Coming soon.",
+        thumb: "/apps/justfits.webp",
       },
     ],
   },
