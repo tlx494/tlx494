@@ -354,7 +354,11 @@
       <a href="/steady/metronome/">metronome</a>, <a href="/steady/tap-tempo/">tap tempo</a>,
       <a href="/steady/tuner/">tuner</a> and <a href="/steady/polyrhythm/">polyrhythms</a>.</p>
     <figure class="hero-shot">
-      <div class="phone"><img src="shots/metronome.webp" alt="Steady's metronome screen: the tempo at 120 BPM with the vertical tempo slider down the right-hand edge" width="720" height="1558"></div>
+      <div class="phone"><picture>
+        <!-- Real app, recorded playing 4/4 at 120 BPM: one frame per beat. The
+             still screenshot for anyone who has asked for reduced motion. -->
+        <source media="(prefers-reduced-motion: reduce)" srcset="shots/metronome.webp">
+        <img src="shots/metronome-beat.webp" alt="Steady's metronome playing 4/4 at 120 BPM: the four beat markers light up in turn, with the vertical tempo slider down the right-hand edge" width="720" height="1558"></picture></div>
     </figure>
   </div>
 </header>
