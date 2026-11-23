@@ -14,7 +14,7 @@ export const MUSESCORE_URL = "https://musescore.com/user/3321261";
 // Reclaim, Steady, Just Fits and Talks are static pages served from this same
 // origin, so they are ordinary navigations. Down the Line is served on this
 // origin too, by a Cloudflare Worker routed at /down-the-line (its builds sit
-// behind a password). PianoRoom and MuseScore live on their own domains.
+// behind a password). PianoRoom, MuseScore and BYOself live on their own domains.
 export const SECTIONS: Section[] = [
   {
     id: "apps",
@@ -31,6 +31,13 @@ export const SECTIONS: Section[] = [
         name: "Reclaim Disk Space",
         blurb: "See what is filling your Mac, and clear it safely.",
         thumb: "/apps/reclaim.webp",
+      },
+      {
+        href: "https://byoself.com",
+        name: "BYOself",
+        blurb: "Holds what your AI agents need you to decide. In private testing.",
+        thumb: "/apps/byoself.webp",
+        external: true,
       },
     ],
   },
